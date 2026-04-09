@@ -50,18 +50,36 @@
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #555; }
 
-        #canvas-container {
+        /* Separated Workspace Area */
+        #workspace-area {
             position: absolute;
             top: 0;
             left: 320px;
             width: calc(100vw - 320px);
             height: 100vh;
             background-color: #020305;
-            z-index: 1;
+            z-index: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: auto;
+            /* Techy dotted background for the empty workspace */
+            background-image: radial-gradient(#1e293b 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* The Bounded Rendering Window */
+        #canvas-container {
+            width: 600px;
+            height: 600px;
+            background-color: #020305;
+            position: relative;
+            flex-shrink: 0;
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.15), 0 25px 50px -12px rgba(0, 0, 0, 0.7);
         }
 
         @media (max-width: 768px) {
-            #canvas-container { left: 0; top: 50vh; width: 100vw; height: 50vh; }
+            #workspace-area { left: 0; top: 50vh; width: 100vw; height: 50vh; }
             #sidebar { width: 100vw; height: 50vh; overflow-y: auto; }
         }
 
@@ -72,8 +90,8 @@
         }
         
         .loader-ring {
-            border: 4px solid rgba(74, 171, 255, 0.1);
-            border-left-color: #4aabff;
+            border: 4px solid rgba(255, 215, 0, 0.1);
+            border-left-color: #ffd700;
             border-radius: 50%;
             width: 40px;
             height: 40px;
@@ -93,9 +111,9 @@
         
         <!-- Header -->
         <div class="p-6 border-b border-slate-800 flex items-center gap-3">
-            <i class="ph ph-broadcast text-3xl text-blue-400" id="header-icon"></i>
+            <i class="ph ph-broadcast text-3xl text-yellow-400" id="header-icon"></i>
             <div>
-                <h1 class="text-lg font-bold tracking-wider text-blue-400 font-mono" id="header-title">HOLO_PROJ v4.1</h1>
+                <h1 class="text-lg font-bold tracking-wider text-yellow-400 font-mono" id="header-title">HOLO_PROJ v4.8</h1>
                 <p class="text-xs text-slate-400 font-mono">Holographic Uplink</p>
             </div>
         </div>
@@ -106,12 +124,12 @@
             <!-- Upload Section -->
             <div class="space-y-3">
                 <h2 class="text-xs font-bold text-slate-500 uppercase tracking-widest font-mono">Data Source</h2>
-                <label for="obj-upload" class="flex items-center justify-center gap-2 w-full py-3 px-4 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 hover:border-blue-500 cursor-pointer transition-all text-slate-200" id="upload-btn">
+                <label for="obj-upload" class="flex items-center justify-center gap-2 w-full py-3 px-4 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 hover:border-yellow-500 cursor-pointer transition-all text-slate-200" id="upload-btn">
                     <i class="ph ph-upload-simple text-lg"></i>
                     <span>Upload .OBJ File</span>
                 </label>
                 <input type="file" id="obj-upload" accept=".obj" class="hidden">
-                <p class="text-xs text-slate-500 font-mono" id="file-name-display">Loaded: Default_Hull.obj</p>
+                <p class="text-xs text-slate-500 font-mono" id="file-name-display">Loaded: Corvette_Class.obj</p>
             </div>
 
             <!-- Visualization Controls -->
@@ -123,7 +141,7 @@
                         <option value="blue">Deep Space (Blue)</option>
                         <option value="red">Alert (Red)</option>
                         <option value="green">Tactical (Green)</option>
-                        <option value="gold">Archival (Gold)</option>
+                        <option value="gold" selected>Archival (Gold)</option>
                         <option value="custom">Custom Wavelength</option>
                     </select>
                 </div>
@@ -131,7 +149,7 @@
                 <div class="hidden items-center justify-between pt-2 gap-2" id="custom-color-container">
                     <span class="text-slate-300 whitespace-nowrap">Custom Hex</span>
                     <div class="flex items-center gap-2">
-                        <input type="text" id="custom-hex-input" value="#B026FF" class="w-20 bg-slate-800 border border-slate-600 text-slate-200 rounded px-2 py-1 text-xs font-mono outline-none focus:border-blue-500 text-center uppercase" maxlength="7">
+                        <input type="text" id="custom-hex-input" value="#B026FF" class="w-20 bg-slate-800 border border-slate-600 text-slate-200 rounded px-2 py-1 text-xs font-mono outline-none focus:border-yellow-500 text-center uppercase" maxlength="7">
                         <input type="color" id="custom-color-picker" value="#b026ff" class="w-8 h-8 rounded cursor-pointer bg-transparent border-0 p-0">
                     </div>
                 </div>
@@ -154,6 +172,14 @@
                     <span class="text-slate-300">Flat Projection (2D Look)</span>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="flat-toggle" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-300">Background Grid</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="grid-toggle" class="sr-only peer" checked>
                         <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
                     </label>
                 </div>
@@ -249,8 +275,30 @@
                     <input type="text" id="hud-text-5" value="REC: {REC}" disabled class="w-full bg-slate-800 border border-slate-600 text-slate-200 rounded px-2 py-1.5 text-xs font-mono outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 </div>
 
+                <div class="space-y-3 pt-3 border-t border-slate-800">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-widest font-mono">Render Resolution</span>
+                    <div class="flex gap-2">
+                        <div class="flex-1">
+                            <label class="text-[10px] text-slate-400 font-mono mb-1 block">Width (px)</label>
+                            <input type="number" id="res-width" value="600" min="200" max="2000" class="w-full bg-slate-800 border border-slate-600 text-slate-200 rounded px-2 py-1.5 text-xs font-mono outline-none transition-colors">
+                        </div>
+                        <div class="flex-1">
+                            <label class="text-[10px] text-slate-400 font-mono mb-1 block">Height (px)</label>
+                            <input type="number" id="res-height" value="600" min="200" max="2000" class="w-full bg-slate-800 border border-slate-600 text-slate-200 rounded px-2 py-1.5 text-xs font-mono outline-none transition-colors">
+                        </div>
+                    </div>
+                </div>
+
                 <button id="reboot-btn" class="w-full py-2 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 text-xs font-mono transition-colors mt-2 flex justify-center items-center gap-2">
                     <i class="ph ph-power"></i> System Reboot
+                </button>
+            </div>
+
+            <!-- AI Analysis -->
+            <div class="space-y-4 pt-4 border-t border-slate-800 pb-2">
+                <h2 class="text-xs font-bold text-slate-500 uppercase tracking-widest font-mono">Deep Scan AI</h2>
+                <button id="ai-report-btn" class="w-full py-2.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 text-xs font-mono transition-colors flex justify-center items-center gap-2">
+                    <i class="ph ph-cpu text-lg"></i> Run Tactical Analysis
                 </button>
             </div>
 
@@ -265,8 +313,11 @@
         </div>
     </div>
 
-    <!-- 3D Canvas Area -->
-    <div id="canvas-container"></div>
+    <!-- Separated Workspace Area -->
+    <div id="workspace-area">
+        <!-- 3D Canvas Frame -->
+        <div id="canvas-container"></div>
+    </div>
 
     <!-- UI Overlay for Messages -->
     <div id="message-overlay" class="absolute top-4 right-4 z-50 transform transition-transform translate-x-[150%]">
@@ -284,6 +335,30 @@
             <div id="loading-bar" class="h-full w-0 transition-all duration-100"></div>
         </div>
         <p id="loading-text" class="text-xs text-slate-400 font-mono mt-3">Rendering frames...</p>
+    </div>
+
+    <!-- Modal for AI Analysis -->
+    <div id="ai-modal" class="absolute inset-0 z-[110] bg-black/90 backdrop-blur-md hidden flex-col items-center justify-center p-4">
+        <div class="glass-panel p-6 rounded-lg max-w-2xl w-full border shadow-[0_0_50px_rgba(0,0,0,0.5)]" id="ai-modal-panel">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-white font-mono flex items-center gap-2" id="ai-modal-title">
+                    <i class="ph ph-cpu"></i>
+                    AI TACTICAL REPORT
+                </h2>
+                <button id="close-ai-btn" class="text-slate-400 hover:text-white transition-colors">
+                    <i class="ph ph-x text-2xl"></i>
+                </button>
+            </div>
+            
+            <div id="ai-report-content" class="bg-black/50 rounded-lg p-6 mb-6 border border-slate-800 flex flex-col min-h-[200px] text-slate-300 font-mono text-sm whitespace-pre-wrap overflow-y-auto max-h-[50vh] leading-relaxed">
+            </div>
+
+            <div class="flex justify-end gap-4">
+                <button id="dismiss-ai-btn" class="px-6 py-2 rounded border border-slate-600 hover:bg-slate-800 text-slate-300 transition-colors">
+                    Acknowledge
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Modal for GIF Download -->
@@ -333,9 +408,10 @@
             // UI & State Management
             // ==========================================
             const state = {
-                style: 'gold', // Changed default to gold to match your reference image!
+                style: 'gold',
                 wireframe: false,
-                flatShading: true,
+                flatShading: true, 
+                gridActive: true,  
                 flicker: true,
                 scanLaser: true,
                 overlay: true,
@@ -344,6 +420,8 @@
                 bloom: true,
                 bloomStrength: 0.8,
                 projectorStyle: 'council',
+                resWidth: 600,
+                resHeight: 600,
                 isRecording: false,
                 boundingBoxSize: 10,
                 baseY: 0,
@@ -365,6 +443,7 @@
                 customHexInput: document.getElementById('custom-hex-input'),
                 wireframe: document.getElementById('wireframe-toggle'),
                 flatToggle: document.getElementById('flat-toggle'),
+                gridToggle: document.getElementById('grid-toggle'),
                 flicker: document.getElementById('flicker-toggle'),
                 scanToggle: document.getElementById('scan-toggle'),
                 overlayToggle: document.getElementById('overlay-toggle'),
@@ -380,13 +459,18 @@
                 hudText5: document.getElementById('hud-text-5'),
                 streamSelect: document.getElementById('stream-style'),
                 recSelect: document.getElementById('rec-style'),
+                resWidth: document.getElementById('res-width'),
+                resHeight: document.getElementById('res-height'),
                 rebootBtn: document.getElementById('reboot-btn'),
                 recordBtn: document.getElementById('record-btn'),
+                aiReportBtn: document.getElementById('ai-report-btn'),
+                aiModal: document.getElementById('ai-modal'),
+                aiReportContent: document.getElementById('ai-report-content'),
+                closeAiBtn: document.getElementById('close-ai-btn'),
                 messageOverlay: document.getElementById('message-overlay'),
                 messageText: document.getElementById('message-text')
             };
 
-            // Init dropdown
             ui.styleSelect.value = state.style;
 
             function showMessage(msg, isError = false) {
@@ -411,19 +495,20 @@
             // ==========================================
             // Three.js Setup (Main Scene)
             // ==========================================
+            const clock = new THREE.Clock(); // Initialized before usage to prevent ReferenceError
             const container = document.getElementById('canvas-container');
             const scene = new THREE.Scene();
             scene.background = new THREE.Color('#020305');
             scene.fog = new THREE.FogExp2(0x020305, 0.025);
 
-            const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+            const camera = new THREE.PerspectiveCamera(45, state.resWidth / state.resHeight, 0.1, 1000);
             camera.position.set(12, 8, 12);
 
             const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
-            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setSize(state.resWidth, state.resHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             renderer.setClearColor(0x020305, 1);
-            renderer.autoClear = false; // Required to overlay HUD on top of main scene
+            renderer.autoClear = false; 
             container.appendChild(renderer.domElement);
 
             const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -432,16 +517,30 @@
             controls.enablePan = false;
             controls.maxPolarAngle = Math.PI / 2 + 0.05;
 
-            // Post-Processing Composer (Cinematic Bloom) - Fixed threshold to prevent blowout
+            // Post-Processing Composer (Cinematic Bloom)
             const renderScene = new THREE.RenderPass(scene, camera);
-            const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(container.clientWidth, container.clientHeight), 0.8, 0.4, 0.4);
+            const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(state.resWidth, state.resHeight), 0.8, 0.4, 0.4);
             const composer = new THREE.EffectComposer(renderer);
             composer.addPass(renderScene);
             composer.addPass(bloomPass);
 
-            // Environment
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
             scene.add(ambientLight);
+
+            // ==========================================
+            // Canvas Style Component: Background Grids
+            // ==========================================
+            const gridGroup = new THREE.Group();
+            const polarGrid = new THREE.PolarGridHelper(25, 16, 8, 64, THEMES[state.style].color, THEMES[state.style].color);
+            polarGrid.rotation.x = Math.PI / 2;
+            polarGrid.position.z = -8;
+            
+            const cartesianGrid = new THREE.GridHelper(50, 50, THEMES[state.style].color, THEMES[state.style].color);
+            cartesianGrid.rotation.x = Math.PI / 2;
+            cartesianGrid.position.z = -8.1;
+            
+            gridGroup.add(polarGrid, cartesianGrid);
+            scene.add(gridGroup);
 
             // Volumetric Beams
             const beamGroup = new THREE.Group();
@@ -452,14 +551,14 @@
             const beamInner = new THREE.Mesh(new THREE.CylinderGeometry(3.5, 1.5, 15, 32, 1, true), beamMatInner);
             beamGroup.add(beamOuter, beamInner);
             
-            // Feature: Ambient Data Dust
+            // Ambient Data Dust
             const dustCount = 300;
             const dustGeo = new THREE.BufferGeometry();
             const dustPos = new Float32Array(dustCount * 3);
             for(let i=0; i<dustCount*3; i+=3) {
-                dustPos[i] = (Math.random() - 0.5) * 6; // x
-                dustPos[i+1] = Math.random() * 15 - 7.5; // y
-                dustPos[i+2] = (Math.random() - 0.5) * 6; // z
+                dustPos[i] = (Math.random() - 0.5) * 6; 
+                dustPos[i+1] = Math.random() * 15 - 7.5; 
+                dustPos[i+2] = (Math.random() - 0.5) * 6; 
             }
             dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
             const dustMat = new THREE.PointsMaterial({ color: THEMES[state.style].color, size: 0.05, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false });
@@ -472,7 +571,6 @@
             projectorGroup.position.y = -5.25;
             scene.add(projectorGroup);
 
-            // Fixed: Lowered emissive intensity to prevent nuclear glow blob on base
             let lensMat = new THREE.MeshStandardMaterial({ 
                 color: 0x000000, 
                 emissive: THEMES[state.style].color, 
@@ -482,7 +580,6 @@
             });
 
             function buildProjector() {
-                // Clear existing
                 while(projectorGroup.children.length > 0){ 
                     let child = projectorGroup.children[0];
                     projectorGroup.remove(child); 
@@ -497,7 +594,7 @@
                     lensGeo = new THREE.CylinderGeometry(2.5, 2.5, 0.52, 32);
                     beamGroup.scale.set(1, 1, 1);
                 } else if (state.projectorStyle === 'imperial') {
-                    baseGeo = new THREE.CylinderGeometry(4.5, 4.5, 0.8, 8); // Octagon
+                    baseGeo = new THREE.CylinderGeometry(4.5, 4.5, 0.8, 8); 
                     baseMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.8, metalness: 0.5 });
                     lensGeo = new THREE.CylinderGeometry(3, 3, 0.82, 8);
                     beamGroup.scale.set(1.2, 1, 1.2);
@@ -514,12 +611,10 @@
             }
             buildProjector();
 
-            // Hologram Light
             const holoLight = new THREE.PointLight(THEMES[state.style].color, 3, 25);
             holoLight.position.set(0, -4.5, 0);
             scene.add(holoLight);
 
-            // Scanner Ring
             const ringMat = new THREE.MeshBasicMaterial({ color: THEMES[state.style].color, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending });
             const scanRing = new THREE.Mesh(new THREE.TorusGeometry(3.8, 0.03, 16, 64), ringMat);
             scanRing.rotation.x = Math.PI / 2;
@@ -528,8 +623,7 @@
             let mainModel = new THREE.Group();
             scene.add(mainModel);
 
-            // Fixed: Realistic Fresnel Hologram Shader
-            // Safely bypasses normal dot products when rendering wireframes to prevent lightning/flash bugs
+            // Realistic Fresnel Hologram Shader w/ Flat Shading logic
             const holoVertexShader = `
                 varying vec3 vNormal;
                 varying vec3 vViewPosition;
@@ -556,36 +650,27 @@
                 void main() {
                     float alpha = uOpacity;
 
-                    // Only calculate 3D Fresnel rim lighting on solid faces, NOT 1D lines!
                     if (!uIsWireframe) {
                         if (uFlatShading) {
+                            // Flat 2D look
                             alpha = uOpacity * 0.9;
                         } else {
+                            // 3D Rim Lighting
                             vec3 normal = normalize(vNormal);
-                            // Flip normal for internal DoubleSide faces to prevent inverted math
                             if (!gl_FrontFacing) normal = -normal;
                             
                             vec3 viewDir = normalize(vViewPosition);
-                            
-                            // Realistic Fresnel (X-ray edge glow) 
                             float rim = 1.0 - max(dot(viewDir, normal), 0.0);
                             rim = smoothstep(0.3, 1.0, rim);
-                            
-                            // Combine rim light with a stable base glow
                             alpha = (rim * 0.7 + 0.3) * uOpacity;
                         }
                     }
 
-                    // Interlaced Hologram Scanlines
+                    // Scanlines
                     if (uFlatShading) {
-                        // Sharp, aggressive scanlines for flat CRT look
-                        if (mod(gl_FragCoord.y, 4.0) < 2.0) {
-                            alpha *= 0.05;
-                        }
+                        if (mod(gl_FragCoord.y, 4.0) < 2.0) alpha *= 0.05; // Sharp flat scanlines
                     } else {
-                        if (mod(gl_FragCoord.y, 4.0) < 2.0) {
-                            alpha *= 0.3;
-                        }
+                        if (mod(gl_FragCoord.y, 4.0) < 2.0) alpha *= 0.3;  // Softer 3D scanlines
                     }
 
                     // Vertical Attenuation Fade
@@ -620,24 +705,52 @@
             });
 
             // ==========================================
-            // Three.js Setup (Tactical HUD Overlay)
+            // Tactical HUD Overlay Setup
             // ==========================================
             const hudScene = new THREE.Scene();
             const hudCamera = new THREE.OrthographicCamera(
-                -container.clientWidth/2, container.clientWidth/2, 
-                container.clientHeight/2, -container.clientHeight/2, 0, 10
+                -state.resWidth/2, state.resWidth/2, 
+                state.resHeight/2, -state.resHeight/2, 0, 10
             );
             
             const hudCanvas = document.createElement('canvas');
-            hudCanvas.width = container.clientWidth;
-            hudCanvas.height = container.clientHeight;
+            hudCanvas.width = state.resWidth;
+            hudCanvas.height = state.resHeight;
             const hudCtx = hudCanvas.getContext('2d');
             const hudTex = new THREE.CanvasTexture(hudCanvas);
             
             const hudMat = new THREE.SpriteMaterial({ map: hudTex, transparent: true, blending: THREE.AdditiveBlending });
             const hudSprite = new THREE.Sprite(hudMat);
-            hudSprite.scale.set(container.clientWidth, container.clientHeight, 1);
+            hudSprite.scale.set(state.resWidth, state.resHeight, 1);
             hudScene.add(hudSprite);
+
+            // Synchronize canvas logic when settings change
+            function resizeCanvas() {
+                const w = state.resWidth;
+                const h = state.resHeight;
+                
+                container.style.width = `${w}px`;
+                container.style.height = `${h}px`;
+                
+                renderer.setSize(w, h);
+                composer.setSize(w, h);
+                camera.aspect = w / h;
+                camera.updateProjectionMatrix();
+                
+                hudCanvas.width = w;
+                hudCanvas.height = h;
+                hudCamera.left = -w/2;
+                hudCamera.right = w/2;
+                hudCamera.top = h/2;
+                hudCamera.bottom = -h/2;
+                hudCamera.updateProjectionMatrix();
+                hudSprite.scale.set(w, h, 1);
+                
+                // Force an immediate frame redraw to fix alignment instantly
+                if (typeof clock !== 'undefined' && clock) {
+                    updateHUD(clock.getElapsedTime());
+                }
+            }
 
             function updateHUD(time) {
                 if (!state.overlay) {
@@ -653,7 +766,7 @@
                 hudCtx.fillStyle = theme.hex;
                 hudCtx.strokeStyle = theme.hex;
                 
-                // Target Reticle
+                // Canvas Style: Center Target Reticle & Crosshairs
                 const cx = w/2, cy = h/2;
                 const r = Math.min(w, h) * 0.35;
                 
@@ -661,7 +774,6 @@
                 hudCtx.globalAlpha = 0.2;
                 hudCtx.beginPath(); hudCtx.arc(cx, cy, r, 0, Math.PI * 2); hudCtx.stroke();
                 
-                // Crosshairs
                 hudCtx.beginPath();
                 hudCtx.moveTo(cx - r - 20, cy); hudCtx.lineTo(cx - r + 20, cy);
                 hudCtx.moveTo(cx + r - 20, cy); hudCtx.lineTo(cx + r + 20, cy);
@@ -720,7 +832,7 @@
                 hudCtx.fillText(t2, 30, 65);
                 hudCtx.fillText(t3, 30, 90);
                 
-                // Split-rendering logic to allow Aurebesh custom font ONLY on the glitch token
+                // Split-rendering logic for Aurebesh Font
                 if (state.streamStyle === 'aurebesh' && ui.hudText4.value.includes('{GLITCH}')) {
                     let parts = ui.hudText4.value.split('{GLITCH}');
                     let cx = 30;
@@ -742,7 +854,7 @@
                 }
                 
                 hudCtx.textAlign = "right";
-                hudCtx.font = "bold 14px 'JetBrains Mono', monospace"; // Reset font for right side
+                hudCtx.font = "bold 14px 'JetBrains Mono', monospace"; 
                 hudCtx.fillText(`SYS.CLOCK: ${time.toFixed(2)}s`, w - 30, 40);
                 hudCtx.fillText(t5, w - 30, 65);
                 
@@ -772,18 +884,28 @@
                 dustMat.color.setHex(theme.color);
                 ringMat.color.setHex(theme.color);
                 holoLight.color.setHex(theme.color);
-                lensMat.emissive.setHex(theme.color); // Updated to emissive for StandardMaterial
+                lensMat.emissive.setHex(theme.color); 
+                
+                // Update Canvas Style Grids
+                polarGrid.material.color.setHex(theme.color);
+                cartesianGrid.material.color.setHex(theme.color);
+                polarGrid.material.opacity = state.gridActive ? 0.15 : 0;
+                cartesianGrid.material.opacity = state.gridActive ? 0.08 : 0;
+                polarGrid.material.transparent = true;
+                cartesianGrid.material.transparent = true;
 
                 // Update UI visuals
                 document.getElementById('header-title').style.color = theme.hex;
                 document.getElementById('header-icon').style.color = theme.hex;
+                document.getElementById('ai-modal-panel').style.borderColor = `${theme.hex}55`;
+                document.getElementById('ai-modal-title').style.color = theme.hex;
                 
                 const uploadBtn = document.getElementById('upload-btn');
                 uploadBtn.style.borderColor = '#475569';
                 uploadBtn.onmouseover = () => uploadBtn.style.borderColor = theme.hex;
                 uploadBtn.onmouseout = () => uploadBtn.style.borderColor = '#475569';
 
-                document.querySelectorAll('.peer-checked\\:bg-cyan-500, .peer-checked\\:after\\:border-white').forEach(el => {
+                document.querySelectorAll('.peer-checked\\:bg-cyan-500, .peer-checked\\:after\\:border-white, .peer-checked\\:bg-yellow-500').forEach(el => {
                     el.style.backgroundColor = el.previousElementSibling.checked ? theme.hex : '';
                 });
 
@@ -791,12 +913,11 @@
                 ui.recordBtn.style.boxShadow = `0 0 15px ${theme.hex}55`;
                 ui.recordBtn.style.color = (state.style === 'gold' || state.style === 'green') ? '#000' : '#fff';
                 
-                [ui.hudText1, ui.hudText2, ui.hudText3, ui.hudText4, ui.hudText5].forEach(el => {
+                [ui.hudText1, ui.hudText2, ui.hudText3, ui.hudText4, ui.hudText5, ui.resWidth, ui.resHeight].forEach(el => {
                     el.onfocus = () => el.style.borderColor = theme.hex;
                     el.onblur = () => el.style.borderColor = '#475569';
                 });
 
-                // Shader toggles
                 modelMaterial.uniforms.uAttenuation.value = state.attenuation ? 1.0 : 0.0;
 
                 if (mainModel) {
@@ -838,7 +959,7 @@
                 if (maxDim === 0) maxDim = 1; 
                 state.boundingBoxSize = maxDim;
                 
-                state.targetScale = 8 / maxDim; // Store for boot animation
+                state.targetScale = 8 / maxDim; 
                 mainModel.scale.set(state.targetScale, state.targetScale, state.targetScale);
                 
                 const scaledBox = new THREE.Box3().setFromObject(mainModel);
@@ -857,7 +978,6 @@
                     if (child.geometry) {
                         if (!child.geometry.attributes.normal) child.geometry.computeVertexNormals();
                         
-                        // Gather stats for HUD
                         if (child.attributes && child.attributes.position) {
                             state.modelVerts += child.attributes.position.count;
                         } else if (child.geometry.attributes && child.geometry.attributes.position) {
@@ -884,24 +1004,77 @@
                 const group = new THREE.Group();
                 const mMat = new THREE.MeshBasicMaterial({color: 0xffffff}); 
                 
-                const hullGeo = new THREE.BoxGeometry(4, 1, 10);
-                const pos = hullGeo.attributes.position;
-                for(let i=0; i<pos.count; i++) {
-                    if(pos.getZ(i) > 0) { pos.setX(i, pos.getX(i) * 0.1); pos.setY(i, pos.getY(i) * 0.2); } 
-                    else { pos.setX(i, pos.getX(i) * 1.5); }
-                }
-                hullGeo.computeVertexNormals();
-                const hull = new THREE.Mesh(hullGeo, mMat); 
-                hull.position.set(0, 0, 0);
-
-                const bridge = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 1.5), mMat); bridge.position.set(0, 1, -3);
-                const tower1 = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1), mMat); tower1.position.set(-0.5, 2, -3);
-                const tower2 = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1), mMat); tower2.position.set(0.5, 2, -3);
-                const engine = new THREE.Mesh(new THREE.BoxGeometry(3, 0.8, 1), mMat); engine.position.set(0, 0, -5);
+                // Expanse-style Light Frigate (Rocinante inspired)
+                const segments = 8; // Octagonal faceted armor look
+                const rot = Math.PI / 8; // Align flat faces to top/bottom/sides
                 
-                group.add(hull, bridge, tower1, tower2, engine);
+                // 1. Epstein Drive Cone
+                const drive = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 1.4, 1.8, 16), mMat);
+                drive.rotation.x = Math.PI / 2; drive.position.set(0, 0, 5.5);
+                group.add(drive);
+
+                // 2. Aft Reactor & Drive Housing
+                const aft = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.6, 2.5, segments), mMat);
+                aft.rotation.x = Math.PI / 2; aft.rotation.y = rot; aft.position.set(0, 0, 3.5);
+                group.add(aft);
+
+                // 3. Mid Hull (Main decks)
+                const mid = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.4, 4.0, segments), mMat);
+                mid.rotation.x = Math.PI / 2; mid.rotation.y = rot; mid.position.set(0, 0, 0.25);
+                group.add(mid);
+
+                // 4. Forward Hull / Nose
+                const nose = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 1.2, 3.5, segments), mMat);
+                nose.rotation.x = Math.PI / 2; nose.rotation.y = rot; nose.position.set(0, 0, -3.5);
+                group.add(nose);
+
+                // 5. Dorsal Railgun Housing (Spine)
+                const railHousing = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 7.0), mMat);
+                railHousing.position.set(0, 1.2, -1.0);
+                group.add(railHousing);
+
+                // 6. Railgun Barrel
+                const railBarrel = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.2, 4.0), mMat);
+                railBarrel.position.set(0, 1.25, -6.0);
+                group.add(railBarrel);
+
+                // 7. Ventral Keel (Belly Armor/Cargo)
+                const keel = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.6, 8.0), mMat);
+                keel.position.set(0, -1.2, 1.0);
+                group.add(keel);
+
+                // 8. Lateral Maneuvering Thruster Pods (4x around aft)
+                const podGeo = new THREE.BoxGeometry(0.8, 0.6, 2.5);
+                const p1 = new THREE.Mesh(podGeo, mMat); p1.position.set(1.4, 0.8, 3.5); p1.rotation.z = Math.PI / 4;
+                const p2 = new THREE.Mesh(podGeo, mMat); p2.position.set(-1.4, 0.8, 3.5); p2.rotation.z = -Math.PI / 4;
+                const p3 = new THREE.Mesh(podGeo, mMat); p3.position.set(1.4, -0.8, 3.5); p3.rotation.z = -Math.PI / 4;
+                const p4 = new THREE.Mesh(podGeo, mMat); p4.position.set(-1.4, -0.8, 3.5); p4.rotation.z = Math.PI / 4;
+                group.add(p1, p2, p3, p4);
+
+                // 9. Point Defense Cannons (PDCs) - 6x Mounts
+                const pdcGeo = new THREE.BoxGeometry(0.3, 0.3, 0.4);
+                const pdc1 = new THREE.Mesh(pdcGeo, mMat); pdc1.position.set(1.2, 0.5, -2);
+                const pdc2 = new THREE.Mesh(pdcGeo, mMat); pdc2.position.set(-1.2, 0.5, -2);
+                const pdc3 = new THREE.Mesh(pdcGeo, mMat); pdc3.position.set(1.4, -0.5, 1);
+                const pdc4 = new THREE.Mesh(pdcGeo, mMat); pdc4.position.set(-1.4, -0.5, 1);
+                const pdc5 = new THREE.Mesh(pdcGeo, mMat); pdc5.position.set(0, 1.4, 1.5); // Top aft
+                const pdc6 = new THREE.Mesh(pdcGeo, mMat); pdc6.position.set(0, -1.4, -1.5); // Bottom fwd
+                group.add(pdc1, pdc2, pdc3, pdc4, pdc5, pdc6);
+
+                // 10. Forward Comms/Sensor Array
+                const comms = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.1, 0.3, 8), mMat);
+                comms.rotation.x = Math.PI / 2; comms.rotation.y = rot; comms.position.set(0, 0, -5.3);
+                group.add(comms);
+
+                // Calculate normals for proper lighting/wireframe rendering
+                group.traverse(c => {
+                    if(c.isMesh) c.geometry.computeVertexNormals();
+                });
+
                 centerAndPrepareModel(group);
             }
+            // Initialize dimensions on load
+            resizeCanvas();
             loadDefaultShip();
 
             // ==========================================
@@ -933,7 +1106,6 @@
                 if(!val.startsWith('#')) val = '#' + val;
                 
                 if(/^#[0-9A-Fa-f]{6}$/i.test(val)) {
-                    // HTML5 color pickers strictly require lowercase values!
                     ui.customColorPicker.value = val.toLowerCase();
                     THEMES.custom.hex = val.toUpperCase();
                     THEMES.custom.color = parseInt(val.substring(1), 16);
@@ -944,13 +1116,8 @@
             ui.customHexInput.addEventListener('blur', (e) => {
                 let val = e.target.value.trim();
                 if(!val.startsWith('#')) val = '#' + val;
-                
-                if(/^#[0-9A-Fa-f]{6}$/i.test(val)) {
-                    e.target.value = val.toUpperCase();
-                } else {
-                    // Revert to valid hex if left incomplete
-                    e.target.value = THEMES.custom.hex.toUpperCase();
-                }
+                if(/^#[0-9A-Fa-f]{6}$/i.test(val)) e.target.value = val.toUpperCase();
+                else e.target.value = THEMES.custom.hex.toUpperCase();
             });
 
             ui.customColorPicker.addEventListener('input', (e) => {
@@ -969,7 +1136,6 @@
             ui.streamSelect.addEventListener('change', (e) => {
                 state.streamStyle = e.target.value;
                 ui.hudText4.disabled = state.streamStyle !== 'custom';
-                // Auto-restore the token if it was deleted when returning to an animated style
                 if (state.streamStyle !== 'custom' && !ui.hudText4.value.includes('{GLITCH}')) {
                     ui.hudText4.value = "STREAM: {GLITCH}";
                 }
@@ -978,7 +1144,6 @@
             ui.recSelect.addEventListener('change', (e) => {
                 state.recStyle = e.target.value;
                 ui.hudText5.disabled = state.recStyle !== 'custom';
-                // Auto-restore the token if it was deleted when returning to an animated style
                 if (state.recStyle !== 'custom' && !ui.hudText5.value.includes('{REC}')) {
                     ui.hudText5.value = "REC: {REC}";
                 }
@@ -990,37 +1155,39 @@
                 bloomPass.strength = state.bloomStrength;
             });
 
+            ui.resWidth.addEventListener('change', (e) => {
+                let val = parseInt(e.target.value);
+                if(isNaN(val) || val < 200) val = 200;
+                if(val > 2000) val = 2000;
+                e.target.value = val;
+                state.resWidth = val;
+                resizeCanvas();
+            });
+
+            ui.resHeight.addEventListener('change', (e) => {
+                let val = parseInt(e.target.value);
+                if(isNaN(val) || val < 200) val = 200;
+                if(val > 2000) val = 2000;
+                e.target.value = val;
+                state.resHeight = val;
+                resizeCanvas();
+            });
+
             ui.rebootBtn.addEventListener('click', triggerStartup);
 
-            // Sync all toggles to state and UI
             const toggleElements = [
                 { el: ui.wireframe, key: 'wireframe' }, { el: ui.flicker, key: 'flicker' },
                 { el: ui.scanToggle, key: 'scanLaser' }, { el: ui.overlayToggle, key: 'overlay' },
                 { el: ui.dustToggle, key: 'dust' }, { el: ui.attenuationToggle, key: 'attenuation' },
-                { el: ui.bloomToggle, key: 'bloom' }, { el: ui.flatToggle, key: 'flatShading' }
+                { el: ui.bloomToggle, key: 'bloom' }, { el: ui.flatToggle, key: 'flatShading' },
+                { el: ui.gridToggle, key: 'gridActive' }
             ];
 
             toggleElements.forEach(({el, key}) => {
                 el.addEventListener('change', (e) => {
                     state[key] = e.target.checked;
-                    updateTheme(); // Apply color changes to the slider & trigger shader updates
+                    updateTheme(); 
                 });
-            });
-
-            window.addEventListener('resize', () => {
-                renderer.setSize(container.clientWidth, container.clientHeight);
-                composer.setSize(container.clientWidth, container.clientHeight);
-                camera.aspect = container.clientWidth / container.clientHeight;
-                camera.updateProjectionMatrix();
-                
-                hudCanvas.width = container.clientWidth;
-                hudCanvas.height = container.clientHeight;
-                hudCamera.left = -container.clientWidth/2;
-                hudCamera.right = container.clientWidth/2;
-                hudCamera.top = container.clientHeight/2;
-                hudCamera.bottom = -container.clientHeight/2;
-                hudCamera.updateProjectionMatrix();
-                hudSprite.scale.set(container.clientWidth, container.clientHeight, 1);
             });
 
             updateTheme();
@@ -1028,21 +1195,18 @@
             // ==========================================
             // Render Loop & Animation
             // ==========================================
-            const clock = new THREE.Clock();
-
             function animate() {
                 requestAnimationFrame(animate);
                 
                 const time = clock.getElapsedTime();
                 const cycleDuration = 6.0;
 
-                // Feature: Dust Particle Animation
                 if (state.dust) {
                     dustSystem.visible = true;
                     const positions = dustSystem.geometry.attributes.position.array;
                     for(let i=1; i<dustCount*3; i+=3) {
-                        positions[i] += 0.03; // float upwards
-                        if(positions[i] > 7.5) positions[i] = -7.5; // loop bounds relative to beam
+                        positions[i] += 0.03; 
+                        if(positions[i] > 7.5) positions[i] = -7.5; 
                     }
                     dustSystem.geometry.attributes.position.needsUpdate = true;
                 } else {
@@ -1050,21 +1214,18 @@
                 }
 
                 if (mainModel) {
-                    // Constant Rotation
                     const rotationProgress = (time % cycleDuration) / cycleDuration;
                     mainModel.rotation.y = rotationProgress * Math.PI * 2;
                     
-                    // Feature: Startup Boot Sequence Animation
                     if (state.startupProgress > 0) {
-                        state.startupProgress -= 0.012; // Controls duration of boot
+                        state.startupProgress -= 0.012; 
                         if (state.startupProgress < 0) state.startupProgress = 0;
                         
-                        let p = 1.0 - state.startupProgress; // 0 to 1
-                        let easeOut = 1 - Math.pow(1 - p, 3); // elastic curve
+                        let p = 1.0 - state.startupProgress; 
+                        let easeOut = 1 - Math.pow(1 - p, 3); 
                         
                         mainModel.scale.set(state.targetScale * easeOut, state.targetScale * p, state.targetScale * easeOut);
                         
-                        // Initial Boot Flickering
                         if (Math.random() > p) {
                             modelMaterial.uniforms.uOpacity.value = Math.random() * 0.2;
                             mainModel.position.x = mainModel.userData.baseX + (Math.random() - 0.5) * 0.5;
@@ -1073,23 +1234,19 @@
                             mainModel.position.x = mainModel.userData.baseX;
                         }
                     } else {
-                        // Standard stabilized hologram
                         mainModel.scale.set(state.targetScale, state.targetScale, state.targetScale);
-                        
-                        // Adjusted base opacity: wireframes stack faster, so use lower baseline
                         const targetOpacity = state.wireframe ? 0.25 : 0.6;
                         
                         if (state.flicker) {
                             const noise = Math.random();
-                            // Glitch should simulate SIGNAL LOSS (dimming), not strobe lightning (brightening)
                             if (noise > 0.95) {
                                 mainModel.position.x = mainModel.userData.baseX + (Math.random() - 0.5) * 0.15;
-                                modelMaterial.uniforms.uOpacity.value = targetOpacity * 0.1; // Heavy dimming
+                                modelMaterial.uniforms.uOpacity.value = targetOpacity * 0.1; 
                                 holoLight.intensity = 0.5;
                                 beamMatInner.opacity = 0.01;
                             } else if (noise > 0.90) {
                                 mainModel.position.x = mainModel.userData.baseX + (Math.random() - 0.5) * 0.05;
-                                modelMaterial.uniforms.uOpacity.value = targetOpacity * 0.6; // Slight dimming
+                                modelMaterial.uniforms.uOpacity.value = targetOpacity * 0.6; 
                             } else {
                                 mainModel.position.x = mainModel.userData.baseX;
                                 modelMaterial.uniforms.uOpacity.value = targetOpacity;
@@ -1105,7 +1262,6 @@
                     }
                 }
 
-                // Scanner Ring
                 if (state.scanLaser && mainModel) {
                     scanRing.visible = true;
                     const bounds = (state.boundingBoxSize || 10) * 0.45;
@@ -1117,7 +1273,6 @@
                     scanRing.visible = false;
                 }
 
-                // Render Pass (Main Scene -> Clear Depth -> HUD Scene)
                 updateHUD(time);
                 renderer.clear();
                 if (state.bloom) {
@@ -1129,6 +1284,73 @@
                 renderer.render(hudScene, hudCamera);
             }
             animate();
+
+            // ==========================================
+            // API & Gemini LLM Logic
+            // ==========================================
+            async function fetchWithBackoff(url, options, maxRetries = 5) {
+                const delays = [1000, 2000, 4000, 8000, 16000];
+                for (let i = 0; i < maxRetries; i++) {
+                    try {
+                        const response = await fetch(url, options);
+                        if (!response.ok) throw new Error("HTTP Error " + response.status);
+                        return await response.json();
+                    } catch (err) {
+                        if (i === maxRetries - 1) throw err;
+                        await new Promise(res => setTimeout(res, delays[i]));
+                    }
+                }
+            }
+
+            ui.aiReportBtn.addEventListener('click', async () => {
+                ui.aiModal.classList.replace('hidden', 'flex');
+                
+                const themeHex = THEMES[state.style].hex;
+                ui.aiReportContent.innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-4 w-full" style="color: ${themeHex};"><div class="loader-ring w-8 h-8 border-2" style="border-left-color: ${themeHex};"></div><span>Establishing uplink to Core AI...</span></div>`;
+
+                const apiKey = ""; 
+                const prompt = `Act as an advanced sci-fi AI analysis system.
+Write a short, immersive 2-paragraph technical scan report on a 3D model with the following stats:
+- Object Designation: ${ui.filename.textContent.replace('Loaded: ', '')}
+- Vertex Count: ${state.modelVerts}
+- Face Count: ${state.modelFaces}
+- Visual Signature: ${state.style.toUpperCase()} WAVELENGTH
+Include simulated energy readings, structural integrity, and tactical assessment. Keep it flavorful and concise. Use a formal, mechanical tone.`;
+
+                try {
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+                    const payload = {
+                        contents: [{ parts: [{ text: prompt }] }],
+                        systemInstruction: { parts: [{ text: "You are a holographic tactical analysis AI." }] }
+                    };
+
+                    const result = await fetchWithBackoff(url, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    
+                    if(text) {
+                        ui.aiReportContent.textContent = "";
+                        let i = 0;
+                        const typeWriter = setInterval(() => {
+                            ui.aiReportContent.textContent += text.charAt(i);
+                            i++;
+                            if(i >= text.length) clearInterval(typeWriter);
+                        }, 10);
+                    } else {
+                        ui.aiReportContent.textContent = "Error: Invalid response from Core AI.";
+                    }
+                } catch (err) {
+                    ui.aiReportContent.textContent = `[ERROR] Connection to core AI lost. Please verify local comms relay.`;
+                }
+            });
+
+            const closeAiModal = () => ui.aiModal.classList.replace('flex', 'hidden');
+            ui.closeAiBtn.addEventListener('click', closeAiModal);
+            document.getElementById('dismiss-ai-btn').addEventListener('click', closeAiModal);
 
             // ==========================================
             // GIF Recording Logic
@@ -1156,16 +1378,10 @@
                 const totalFrames = fps * durationSeconds;
                 const delayMs = 1000 / fps;
                 
-                const maxDim = 500; 
-                let scaleW = container.clientWidth;
-                let scaleH = container.clientHeight;
-                if(scaleW > maxDim || scaleH > maxDim) {
-                    const r = Math.min(maxDim/scaleW, maxDim/scaleH);
-                    scaleW = Math.floor(scaleW * r);
-                    scaleH = Math.floor(scaleH * r);
-                }
+                // Using EXACT pixel resolutions specified by the user!
+                let scaleW = state.resWidth;
+                let scaleH = state.resHeight;
                 
-                // Force stabilized state for perfect looping
                 state.startupProgress = 0; 
                 clock.start(); 
 
@@ -1182,7 +1398,6 @@
                 showMessage(`Recording ${durationSeconds}s holographic loop...`);
 
                 const captureInterval = setInterval(() => {
-                    // Force render manually to ensure buffer is strictly synced to capture timing
                     updateHUD(clock.getElapsedTime());
                     renderer.clear();
                     if (state.bloom) {
@@ -1239,7 +1454,6 @@
                 }, delayMs);
             });
 
-            // Modal Handlers
             function closeModal() {
                 document.getElementById('gif-modal').classList.replace('flex', 'hidden');
                 document.getElementById('gif-preview').src = '';
