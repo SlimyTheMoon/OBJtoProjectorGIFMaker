@@ -1,62 +1,68 @@
 # OBJtoProjectorGIFMaker
 
-A single-page browser app that turns `.OBJ` models into stylized holographic projector scenes and exports animated GIFs.
+A browser-based utility that converts `.OBJ` models into a stylized holographic projector scene and exports a looping GIF.
 
-## Overview
+## Description
 
-`OBJtoProjectorGIFMaker` renders a 3D object inside a futuristic holo-projector interface. Users can upload an OBJ file, customize the projector appearance, enable holographic effects, and record a looping GIF directly from the browser.
+`OBJtoProjectorGIFMaker` is a single-file web app built with Three.js and GIF.js. It loads OBJ geometry, wraps it in a futuristic holographic environment, and lets you export an animated hologram clip without any build setup.
 
-## Features
+## Key Features
 
-- Upload `.OBJ` models and preview them in real time
-- Hologram color presets plus custom color selection
-- Choose projector base style: cylindrical, octagonal, or portable
-- Visual effect toggles: flat projection, HUD overlay, dust, attenuation, bloom, glitch, scan ring, wireframe
-- Custom HUD text with dynamic placeholders
-- Export a 6-second looping GIF using the in-app recorder
+- Real-time `.OBJ` model preview in a sci-fi projector display
+- Multiple holo color themes and custom color input
+- Selectable projector base styles: cylindrical, octagonal, or portable
+- Toggleable holographic effects: flat projection, HUD overlay, dust particles, attenuation, bloom, glitch, scan ring, wireframe
+- Editable HUD text with dynamic placeholders
+- Generate a 6-second looping GIF from the rendered scene
 
-## How to Use
+## Quick Start
 
 1. Open `index.html` in a modern browser.
-2. Upload a `.OBJ` file using the sidebar control.
-3. Adjust the holo style, projector style, and visual effect toggles.
-4. Press `Record 6s Loop` to generate a GIF.
-5. Download the result from the GIF modal.
+2. Upload your `.OBJ` file from the sidebar.
+3. Customize the holo style and projector appearance.
+4. Enable or disable visual effects.
+5. Click `Record 6s Loop` to render and save the GIF.
 
-### Local Hosting
+## Recommended Setup
 
-For the best experience, serve the project with a local HTTP server instead of opening the file directly.
+For best results, run a local HTTP server instead of opening the file directly.
 
 ```powershell
 python -m http.server 8000
 ```
 
-Then open:
+Open the app at:
 
 ```text
 http://localhost:8000
 ```
 
-## Supported Input
+## Supported File Types
 
-- `.OBJ` files only
+- `.obj` only
 
-## Built With
+## Project Structure
 
-- `HTML`, `CSS`, `JavaScript`
-- `Three.js` (3D scene, OBJLoader, OrbitControls)
-- `EffectComposer`, `RenderPass`, `UnrealBloomPass`
-- `gif.js` for GIF export
-- Tailwind CSS for UI styling
-- Phosphor Icons for interface icons
-
-## Files
-
-- `index.html` — application UI, rendering logic, and export workflow
+- `index.html` — main application UI, 3D scene, controls, and GIF export logic
 - `LICENSE.md` — license text (GNU GPL v2)
 - `README.md` — project documentation
 
+## Technologies Used
+
+- `Three.js` for 3D rendering and scene management
+- `OBJLoader` for loading geometry
+- `OrbitControls` for camera control
+- `EffectComposer` + `UnrealBloomPass` for lighting and bloom effects
+- `gif.js` for GIF capture and export
+- `Tailwind CSS` for styling
+- `Phosphor Icons` for iconography
+
+## Notes
+
+- The app runs entirely in the browser and does not require a server-side component.
+- Large OBJ files may reduce performance during rendering or GIF export.
+
 ## License
 
-This project is licensed under the GNU General Public License version 2 (GPLv2). See `LICENSE.md` for full details.
+This project is licensed under the GNU General Public License version 2 (GPLv2). See `LICENSE.md` for details.
 

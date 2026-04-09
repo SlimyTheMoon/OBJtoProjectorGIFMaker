@@ -273,6 +273,17 @@
                     <input type="text" id="hud-text-3" value="ATTEN: {ATTEN} | DUST: {DUST}" class="w-full bg-slate-800 border border-slate-600 text-slate-200 rounded px-2 py-1.5 text-xs font-mono outline-none transition-colors">
                     <input type="text" id="hud-text-4" value="STREAM: {GLITCH}" disabled class="w-full bg-slate-800 border border-slate-600 text-slate-200 rounded px-2 py-1.5 text-xs font-mono outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                     <input type="text" id="hud-text-5" value="REC: {REC}" disabled class="w-full bg-slate-800 border border-slate-600 text-slate-200 rounded px-2 py-1.5 text-xs font-mono outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    
+                    <!-- New Temporal Seed Input & Randomizer -->
+                    <div class="pt-2">
+                        <p class="text-[10px] text-slate-500 leading-tight mb-1">Temporal Seed (Sys.Clock Prefix)</p>
+                        <div class="flex gap-2">
+                            <input type="text" id="clock-prefix-input" class="flex-1 bg-slate-800 border border-slate-600 text-slate-200 rounded px-2 py-1.5 text-xs font-mono outline-none transition-colors">
+                            <button id="randomize-clock-btn" class="bg-slate-800 border border-slate-600 hover:bg-slate-700 text-slate-300 rounded px-3 py-1.5 transition-colors flex items-center justify-center" title="Generate New UTH Seed">
+                                <i class="ph ph-dice-3 text-lg"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="space-y-3 pt-3 border-t border-slate-800">
@@ -291,14 +302,6 @@
 
                 <button id="reboot-btn" class="w-full py-2 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 text-xs font-mono transition-colors mt-2 flex justify-center items-center gap-2">
                     <i class="ph ph-power"></i> System Reboot
-                </button>
-            </div>
-
-            <!-- AI Analysis -->
-            <div class="space-y-4 pt-4 border-t border-slate-800 pb-2">
-                <h2 class="text-xs font-bold text-slate-500 uppercase tracking-widest font-mono">Deep Scan AI</h2>
-                <button id="ai-report-btn" class="w-full py-2.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 text-xs font-mono transition-colors flex justify-center items-center gap-2">
-                    <i class="ph ph-cpu text-lg"></i> Run Tactical Analysis
                 </button>
             </div>
 
@@ -335,30 +338,6 @@
             <div id="loading-bar" class="h-full w-0 transition-all duration-100"></div>
         </div>
         <p id="loading-text" class="text-xs text-slate-400 font-mono mt-3">Rendering frames...</p>
-    </div>
-
-    <!-- Modal for AI Analysis -->
-    <div id="ai-modal" class="absolute inset-0 z-[110] bg-black/90 backdrop-blur-md hidden flex-col items-center justify-center p-4">
-        <div class="glass-panel p-6 rounded-lg max-w-2xl w-full border shadow-[0_0_50px_rgba(0,0,0,0.5)]" id="ai-modal-panel">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold text-white font-mono flex items-center gap-2" id="ai-modal-title">
-                    <i class="ph ph-cpu"></i>
-                    AI TACTICAL REPORT
-                </h2>
-                <button id="close-ai-btn" class="text-slate-400 hover:text-white transition-colors">
-                    <i class="ph ph-x text-2xl"></i>
-                </button>
-            </div>
-            
-            <div id="ai-report-content" class="bg-black/50 rounded-lg p-6 mb-6 border border-slate-800 flex flex-col min-h-[200px] text-slate-300 font-mono text-sm whitespace-pre-wrap overflow-y-auto max-h-[50vh] leading-relaxed">
-            </div>
-
-            <div class="flex justify-end gap-4">
-                <button id="dismiss-ai-btn" class="px-6 py-2 rounded border border-slate-600 hover:bg-slate-800 text-slate-300 transition-colors">
-                    Acknowledge
-                </button>
-            </div>
-        </div>
     </div>
 
     <!-- Modal for GIF Download -->
@@ -405,6 +384,22 @@
             };
 
             // ==========================================
+            // Sci-Fi Clock Seed Generator
+            // ==========================================
+            function generateTemporalSeed() {
+                const netTypes = ['AETHER', 'NULL', 'TACHYON', 'VOID', 'QUANTUM', 'SLIP', 'NEURAL', 'ASTRAL', 'ECHO', 'CHRONO'];
+                const syncTypes = ['SYNC', 'RELAY', 'PULSE', 'CORE', 'NODE', 'LINK', 'WAVE', 'GRID', 'NET'];
+                const easterEggs = ['1138', '0451', '1701', '0426', '0388', '0117', '1984', '2001', '0042', '1337', '0343'];
+                
+                const rNet = netTypes[Math.floor(Math.random() * netTypes.length)];
+                const rSync = syncTypes[Math.floor(Math.random() * syncTypes.length)];
+                const rEgg = easterEggs[Math.floor(Math.random() * easterEggs.length)];
+                const baseHash = Math.random().toString(36).substring(2, 5).toUpperCase();
+                
+                return `${rNet}-${rSync} [${rEgg}-${baseHash}]`;
+            }
+
+            // ==========================================
             // UI & State Management
             // ==========================================
             const state = {
@@ -430,7 +425,10 @@
                 modelVerts: 0,
                 modelFaces: 0,
                 streamStyle: 'blocks',
-                recStyle: 'standard'
+                recStyle: 'standard',
+                
+                clockPrefix: generateTemporalSeed(),
+                clockCycleStart: Math.floor(Math.random() * 89999) + 10000
             };
 
             const ui = {
@@ -457,21 +455,20 @@
                 hudText3: document.getElementById('hud-text-3'),
                 hudText4: document.getElementById('hud-text-4'),
                 hudText5: document.getElementById('hud-text-5'),
+                clockPrefixInput: document.getElementById('clock-prefix-input'),
+                randomizeClockBtn: document.getElementById('randomize-clock-btn'),
                 streamSelect: document.getElementById('stream-style'),
                 recSelect: document.getElementById('rec-style'),
                 resWidth: document.getElementById('res-width'),
                 resHeight: document.getElementById('res-height'),
                 rebootBtn: document.getElementById('reboot-btn'),
                 recordBtn: document.getElementById('record-btn'),
-                aiReportBtn: document.getElementById('ai-report-btn'),
-                aiModal: document.getElementById('ai-modal'),
-                aiReportContent: document.getElementById('ai-report-content'),
-                closeAiBtn: document.getElementById('close-ai-btn'),
                 messageOverlay: document.getElementById('message-overlay'),
                 messageText: document.getElementById('message-text')
             };
 
             ui.styleSelect.value = state.style;
+            ui.clockPrefixInput.value = state.clockPrefix;
 
             function showMessage(msg, isError = false) {
                 ui.messageText.textContent = msg;
@@ -853,14 +850,21 @@
                     hudCtx.fillText(t4, 30, 115);
                 }
                 
+                // Render the new Unified Temporal Hash Clock
                 hudCtx.textAlign = "right";
-                hudCtx.font = "bold 14px 'JetBrains Mono', monospace"; 
-                hudCtx.fillText(`SYS.CLOCK: ${time.toFixed(2)}s`, w - 30, 40);
-                hudCtx.fillText(t5, w - 30, 65);
+                hudCtx.font = "bold 12px 'JetBrains Mono', monospace"; 
+                
+                // Calculate simulated cycle drift and high-speed delta ticks
+                const activeCycle = (state.clockCycleStart + (time * 0.35)).toFixed(2);
+                const subTick = Math.floor((time * 1000) % 1000).toString().padStart(3, '0');
+                
+                hudCtx.fillText(`⟁ ${state.clockPrefix}`, w - 30, 40);
+                hudCtx.fillText(`CYC:${activeCycle} ⸬ Δt:${subTick}`, w - 30, 65);
+                hudCtx.fillText(t5, w - 30, 90);
                 
                 if (state.isRecording && Math.floor(time * 3) % 2 === 0) {
                     hudCtx.fillStyle = '#ff0000';
-                    hudCtx.beginPath(); hudCtx.arc(w - 120, 60, 5, 0, Math.PI * 2); hudCtx.fill();
+                    hudCtx.beginPath(); hudCtx.arc(w - 120, 85, 5, 0, Math.PI * 2); hudCtx.fill();
                 }
                 
                 hudTex.needsUpdate = true;
@@ -897,8 +901,6 @@
                 // Update UI visuals
                 document.getElementById('header-title').style.color = theme.hex;
                 document.getElementById('header-icon').style.color = theme.hex;
-                document.getElementById('ai-modal-panel').style.borderColor = `${theme.hex}55`;
-                document.getElementById('ai-modal-title').style.color = theme.hex;
                 
                 const uploadBtn = document.getElementById('upload-btn');
                 uploadBtn.style.borderColor = '#475569';
@@ -913,10 +915,13 @@
                 ui.recordBtn.style.boxShadow = `0 0 15px ${theme.hex}55`;
                 ui.recordBtn.style.color = (state.style === 'gold' || state.style === 'green') ? '#000' : '#fff';
                 
-                [ui.hudText1, ui.hudText2, ui.hudText3, ui.hudText4, ui.hudText5, ui.resWidth, ui.resHeight].forEach(el => {
+                [ui.hudText1, ui.hudText2, ui.hudText3, ui.hudText4, ui.hudText5, ui.resWidth, ui.resHeight, ui.clockPrefixInput].forEach(el => {
                     el.onfocus = () => el.style.borderColor = theme.hex;
                     el.onblur = () => el.style.borderColor = '#475569';
                 });
+                
+                ui.randomizeClockBtn.onmouseover = () => ui.randomizeClockBtn.style.borderColor = theme.hex;
+                ui.randomizeClockBtn.onmouseout = () => ui.randomizeClockBtn.style.borderColor = '#475569';
 
                 modelMaterial.uniforms.uAttenuation.value = state.attenuation ? 1.0 : 0.0;
 
@@ -1148,6 +1153,15 @@
                     ui.hudText5.value = "REC: {REC}";
                 }
             });
+            
+            ui.clockPrefixInput.addEventListener('input', (e) => {
+                state.clockPrefix = e.target.value;
+            });
+
+            ui.randomizeClockBtn.addEventListener('click', () => {
+                state.clockPrefix = generateTemporalSeed();
+                ui.clockPrefixInput.value = state.clockPrefix;
+            });
 
             ui.bloomSlider.addEventListener('input', (e) => {
                 state.bloomStrength = parseFloat(e.target.value);
@@ -1284,73 +1298,6 @@
                 renderer.render(hudScene, hudCamera);
             }
             animate();
-
-            // ==========================================
-            // API & Gemini LLM Logic
-            // ==========================================
-            async function fetchWithBackoff(url, options, maxRetries = 5) {
-                const delays = [1000, 2000, 4000, 8000, 16000];
-                for (let i = 0; i < maxRetries; i++) {
-                    try {
-                        const response = await fetch(url, options);
-                        if (!response.ok) throw new Error("HTTP Error " + response.status);
-                        return await response.json();
-                    } catch (err) {
-                        if (i === maxRetries - 1) throw err;
-                        await new Promise(res => setTimeout(res, delays[i]));
-                    }
-                }
-            }
-
-            ui.aiReportBtn.addEventListener('click', async () => {
-                ui.aiModal.classList.replace('hidden', 'flex');
-                
-                const themeHex = THEMES[state.style].hex;
-                ui.aiReportContent.innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-4 w-full" style="color: ${themeHex};"><div class="loader-ring w-8 h-8 border-2" style="border-left-color: ${themeHex};"></div><span>Establishing uplink to Core AI...</span></div>`;
-
-                const apiKey = ""; 
-                const prompt = `Act as an advanced sci-fi AI analysis system.
-Write a short, immersive 2-paragraph technical scan report on a 3D model with the following stats:
-- Object Designation: ${ui.filename.textContent.replace('Loaded: ', '')}
-- Vertex Count: ${state.modelVerts}
-- Face Count: ${state.modelFaces}
-- Visual Signature: ${state.style.toUpperCase()} WAVELENGTH
-Include simulated energy readings, structural integrity, and tactical assessment. Keep it flavorful and concise. Use a formal, mechanical tone.`;
-
-                try {
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-                    const payload = {
-                        contents: [{ parts: [{ text: prompt }] }],
-                        systemInstruction: { parts: [{ text: "You are a holographic tactical analysis AI." }] }
-                    };
-
-                    const result = await fetchWithBackoff(url, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(payload)
-                    });
-
-                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                    
-                    if(text) {
-                        ui.aiReportContent.textContent = "";
-                        let i = 0;
-                        const typeWriter = setInterval(() => {
-                            ui.aiReportContent.textContent += text.charAt(i);
-                            i++;
-                            if(i >= text.length) clearInterval(typeWriter);
-                        }, 10);
-                    } else {
-                        ui.aiReportContent.textContent = "Error: Invalid response from Core AI.";
-                    }
-                } catch (err) {
-                    ui.aiReportContent.textContent = `[ERROR] Connection to core AI lost. Please verify local comms relay.`;
-                }
-            });
-
-            const closeAiModal = () => ui.aiModal.classList.replace('flex', 'hidden');
-            ui.closeAiBtn.addEventListener('click', closeAiModal);
-            document.getElementById('dismiss-ai-btn').addEventListener('click', closeAiModal);
 
             // ==========================================
             // GIF Recording Logic
