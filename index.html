@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Holo-Projector Generator</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Three.js and Addons -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- Post-Processing for Cinematic Bloom -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+
+    <!-- GIF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
+
+    <!-- Aurebesh Font -->
+    <link href="https://fonts.cdnfonts.com/css/aurebesh" rel="stylesheet">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;500;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020305;
+            color: #e5e5e5;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 320px;
+            width: calc(100vw - 320px);
+            height: 100vh;
+            background-color: #020305;
+            z-index: 1;
+        }
+
+        @media (max-width: 768px) {
+            #canvas-container { left: 0; top: 50vh; width: 100vw; height: 50vh; }
+            #sidebar { width: 100vw; height: 50vh; overflow-y: auto; }
+        }
+
+        .glass-panel {
+            background: rgba(10, 15, 25, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .loader-ring {
+            border: 4px solid rgba(74, 171, 255, 0.1);
+            border-left-color: #4aabff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="flex h-screen w-screen overflow-hidden text-sm">
+
+    <!-- Preload Aurebesh Font for Canvas Rendering -->
+    <div style="font-family: 'Aurebesh', sans-serif; position: absolute; opacity: 0; pointer-events: none;">preload</div>
+
+    <!-- Sidebar Controls -->
+    <div id="sidebar" class="absolute top-0 left-0 w-[320px] h-full glass-panel z-10 flex flex-col shadow-2xl border-r border-slate-800 transition-transform duration-300">
+        
+        <!-- Header -->
+        <div class="p-6 border-b border-slate-800 flex items-center gap-3">
+            <i class="ph ph-broadcast text-3xl text-blue-400" id="header-icon"></i>
+            <div>
+                <h1 class="text-lg font-bold tracking-wider text-blue-400 font-mono" id="header-title">HOLO_PROJ v4.1</h1>
+                <p class="text-xs text-slate-400 font-mono">Holographic Uplink</p>
+            </div>
+        </div>
+
+        <!-- Scrollable content -->
+        <div class="flex-1 overflow-y-auto p-6 space-y-8">
+            
+            <!-- Upload Section -->
+            <div class="space-y-3">
+                <h2 class="text-xs font-bold text-slate-500 uppercase tracking-widest font-mono">Data Source</h2>
+                <label for="obj-upload" class="flex items-center justify-center gap-2 w-full py-3 px-4 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 hover:border-blue-500 cursor-pointer transition-all text-slate-200" id="upload-btn">
+                    <i class="ph ph-upload-simple text-lg"></i>
+                    <span>Upload .OBJ File</span>
+                </label>
+                <input type="file" id="obj-upload" accept=".obj" class="hidden">
+                <p class="text-xs text-slate-500 font-mono" id="file-name-display">Loaded: Default_Hull.obj</p>
+            </div>
+
+            <!-- Visualization Controls -->
+            <div class="space-y-4 pt-4 border-t border-slate-800">
+                <h2 class="text-xs font-bold text-slate-500 uppercase tracking-widest font-mono">Render Style</h2>
+                
+                <div class="space-y-2">
+                    <select id="holo-style" class="w-full bg-slate-800 border border-slate-600 text-slate-200 rounded px-3 py-2 text-sm font-mono outline-none transition-colors cursor-pointer">
+                        <option value="blue">Deep Space (Blue)</option>
+                        <option value="red">Alert (Red)</option>
+                        <option value="green">Tactical (Green)</option>
+                        <option value="gold">Archival (Gold)</option>
+                        <option value="custom">Custom Wavelength</option>
+                    </select>
+                </div>
+
+                <div class="hidden items-center justify-between pt-2 gap-2" id="custom-color-container">
+                    <span class="text-slate-300 whitespace-nowrap">Custom Hex</span>
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="custom-hex-input" value="#B026FF" class="w-20 bg-slate-800 border border-slate-600 text-slate-200 rounded px-2 py-1 text-xs font-mono outline-none focus:border-blue-500 text-center uppercase" maxlength="7">
+                        <input type="color" id="custom-color-picker" value="#b026ff" class="w-8 h-8 rounded cursor-pointer bg-transparent border-0 p-0">
+                    </div>
+                </div>
+
+                <div class="space-y-2 pt-3 border-t border-slate-800">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-widest font-mono">Hardware Base</span>
+                    <select id="projector-style" class="w-full bg-slate-800 border border-slate-600 text-slate-200 rounded px-3 py-2 text-sm font-mono outline-none transition-colors cursor-pointer">
+                        <option value="council">Standard (Cylindrical)</option>
+                        <option value="imperial">Command (Octagonal)</option>
+                        <option value="puck">Portable (Puck)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Enhanced Features -->
+            <div class="space-y-3 pt-4 border-t border-slate-800">
+                <h2 class="text-xs font-bold text-slate-500 uppercase tracking-widest font-mono">Hologram Settings</h2>
+
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-300">Flat Projection (2D Look)</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="flat-toggle" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-300">Tactical HUD Overlay</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="overlay-toggle" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-300">Ambient Data Dust</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="dust-toggle" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-300">Vertical Attenuation</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="attenuation-toggle" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-300">Cinematic Bloom (Glow)</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="bloom-toggle" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                    </label>
+                </div>
+
+                <div class="space-y-2 pb-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400 text-xs">Glow Intensity</span>
+                        <span id="bloom-val-display" class="text-xs text-slate-500 font-mono">0.8</span>
+                    </div>
+                    <input type="range" id="bloom-slider" min="0" max="3" step="0.1" value="0.8" class="w-full">
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-300">Signal Glitch & Noise</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="flicker-toggle" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-300">Hardware Scanner Ring</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="scan-toggle" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-300">Wireframe Mesh</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="wireframe-toggle" class="sr-only peer">
+                        <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                    </label>
+                </div>
+
+                <div class="space-y-2 pt-3 border-t border-slate-800">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-widest font-mono">HUD Text Data</span>
+                    <div class="flex gap-2">
+                        <select id="stream-style" class="flex-1 bg-slate-800 border border-slate-600 text-slate-200 rounded px-2 py-1 text-[10px] font-mono outline-none transition-colors cursor-pointer">
+                            <option value="blocks">Stream: Blocks</option>
+                            <option value="binary">Stream: Binary</option>
+                            <option value="hex">Stream: Hex</option>
+                            <option value="matrix">Stream: Matrix</option>
+                            <option value="aurebesh">Stream: Galactic Basic</option>
+                            <option value="custom">Stream: Custom</option>
+                        </select>
+                        <select id="rec-style" class="flex-1 bg-slate-800 border border-slate-600 text-slate-200 rounded px-2 py-1 text-[10px] font-mono outline-none transition-colors cursor-pointer">
+                            <option value="standard">Rec: Standard</option>
+                            <option value="military">Rec: Military</option>
+                            <option value="minimal">Rec: Minimal</option>
+                            <option value="numeric">Rec: Numeric</option>
+                            <option value="custom">Rec: Custom</option>
+                        </select>
+                    </div>
+                    <p class="text-[10px] text-slate-500 leading-tight mb-2 mt-1">Edit text below. Use {HEX}, {VERTS}, {FACES}, {ATTEN}, {DUST}, {GLITCH}, {REC} to keep dynamic stats.</p>
+                    <input type="text" id="hud-text-1" value="HOLONET TX // {HEX}" class="w-full bg-slate-800 border border-slate-600 text-slate-200 rounded px-2 py-1.5 text-xs font-mono outline-none transition-colors">
+                    <input type="text" id="hud-text-2" value="MOD: {VERTS}V / {FACES}F" class="w-full bg-slate-800 border border-slate-600 text-slate-200 rounded px-2 py-1.5 text-xs font-mono outline-none transition-colors">
+                    <input type="text" id="hud-text-3" value="ATTEN: {ATTEN} | DUST: {DUST}" class="w-full bg-slate-800 border border-slate-600 text-slate-200 rounded px-2 py-1.5 text-xs font-mono outline-none transition-colors">
+                    <input type="text" id="hud-text-4" value="STREAM: {GLITCH}" disabled class="w-full bg-slate-800 border border-slate-600 text-slate-200 rounded px-2 py-1.5 text-xs font-mono outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <input type="text" id="hud-text-5" value="REC: {REC}" disabled class="w-full bg-slate-800 border border-slate-600 text-slate-200 rounded px-2 py-1.5 text-xs font-mono outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                </div>
+
+                <button id="reboot-btn" class="w-full py-2 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 text-xs font-mono transition-colors mt-2 flex justify-center items-center gap-2">
+                    <i class="ph ph-power"></i> System Reboot
+                </button>
+            </div>
+
+            <!-- Export -->
+            <div class="space-y-4 pt-4 border-t border-slate-800 pb-8">
+                <h2 class="text-xs font-bold text-slate-500 uppercase tracking-widest font-mono">Capture Transmission</h2>
+                <button id="record-btn" class="w-full py-3 rounded text-white font-bold tracking-wide flex items-center justify-center gap-2 transition-colors">
+                    <i class="ph ph-video-camera text-xl"></i>
+                    <span>Record 6s Loop</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3D Canvas Area -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Overlay for Messages -->
+    <div id="message-overlay" class="absolute top-4 right-4 z-50 transform transition-transform translate-x-[150%]">
+        <div id="message-box" class="glass-panel border-l-4 text-white px-4 py-3 rounded shadow-lg min-w-[250px] flex items-center gap-3">
+            <i class="ph ph-info text-xl" id="message-icon"></i>
+            <span id="message-text" class="font-mono text-sm">Message</span>
+        </div>
+    </div>
+
+    <!-- Fullscreen Loading Overlay for GIF Generation -->
+    <div id="loading-overlay" class="absolute inset-0 z-[100] bg-black/80 backdrop-blur-sm hidden flex-col items-center justify-center">
+        <div class="loader-ring mb-4" id="loading-spinner"></div>
+        <h2 class="text-xl font-mono mb-2" id="loading-title">ENCODING TRANSMISSION</h2>
+        <div class="w-64 h-2 bg-slate-800 rounded-full overflow-hidden">
+            <div id="loading-bar" class="h-full w-0 transition-all duration-100"></div>
+        </div>
+        <p id="loading-text" class="text-xs text-slate-400 font-mono mt-3">Rendering frames...</p>
+    </div>
+
+    <!-- Modal for GIF Download -->
+    <div id="gif-modal" class="absolute inset-0 z-[110] bg-black/90 backdrop-blur-md hidden flex-col items-center justify-center p-4">
+        <div class="glass-panel p-6 rounded-lg max-w-2xl w-full border shadow-[0_0_50px_rgba(0,0,0,0.5)]" id="gif-modal-panel">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-white font-mono flex items-center gap-2" id="gif-modal-title">
+                    <i class="ph ph-file-video"></i>
+                    HOLO_RECORDING.GIF
+                </h2>
+                <button id="close-modal-btn" class="text-slate-400 hover:text-white transition-colors">
+                    <i class="ph ph-x text-2xl"></i>
+                </button>
+            </div>
+            
+            <div class="bg-black/50 rounded-lg p-2 mb-6 border border-slate-800 flex justify-center items-center min-h-[300px]">
+                <img id="gif-preview" src="" alt="Generated GIF" class="max-w-full max-h-[50vh] rounded shadow-lg hidden">
+                <div id="gif-loading-placeholder" class="text-slate-500 font-mono text-sm animate-pulse">Awaiting decryption...</div>
+            </div>
+
+            <div class="flex justify-end gap-4">
+                <button id="discard-gif-btn" class="px-6 py-2 rounded border border-slate-600 hover:bg-slate-800 text-slate-300 transition-colors">
+                    Discard
+                </button>
+                <a id="download-gif-link" href="#" download="hologram.gif" class="px-6 py-2 rounded text-white font-bold transition-colors flex items-center gap-2 hidden">
+                    <i class="ph ph-download-simple"></i>
+                    Save GIF
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (async function() {
+            // ==========================================
+            // Colors & Themes
+            // ==========================================
+            const THEMES = {
+                blue:  { color: 0x4aabff, hex: '#4aabff' },
+                red:   { color: 0xff3333, hex: '#ff3333' },
+                green: { color: 0x39ff14, hex: '#39ff14' },
+                gold:  { color: 0xffd700, hex: '#ffd700' },
+                custom:{ color: 0xb026ff, hex: '#b026ff' }
+            };
+
+            // ==========================================
+            // UI & State Management
+            // ==========================================
+            const state = {
+                style: 'gold', // Changed default to gold to match your reference image!
+                wireframe: false,
+                flatShading: true,
+                flicker: true,
+                scanLaser: true,
+                overlay: true,
+                dust: true,
+                attenuation: true,
+                bloom: true,
+                bloomStrength: 0.8,
+                projectorStyle: 'council',
+                isRecording: false,
+                boundingBoxSize: 10,
+                baseY: 0,
+                targetScale: 1,
+                startupProgress: 0, 
+                modelVerts: 0,
+                modelFaces: 0,
+                streamStyle: 'blocks',
+                recStyle: 'standard'
+            };
+
+            const ui = {
+                upload: document.getElementById('obj-upload'),
+                filename: document.getElementById('file-name-display'),
+                styleSelect: document.getElementById('holo-style'),
+                projectorSelect: document.getElementById('projector-style'),
+                customColorContainer: document.getElementById('custom-color-container'),
+                customColorPicker: document.getElementById('custom-color-picker'),
+                customHexInput: document.getElementById('custom-hex-input'),
+                wireframe: document.getElementById('wireframe-toggle'),
+                flatToggle: document.getElementById('flat-toggle'),
+                flicker: document.getElementById('flicker-toggle'),
+                scanToggle: document.getElementById('scan-toggle'),
+                overlayToggle: document.getElementById('overlay-toggle'),
+                dustToggle: document.getElementById('dust-toggle'),
+                attenuationToggle: document.getElementById('attenuation-toggle'),
+                bloomToggle: document.getElementById('bloom-toggle'),
+                bloomSlider: document.getElementById('bloom-slider'),
+                bloomValDisplay: document.getElementById('bloom-val-display'),
+                hudText1: document.getElementById('hud-text-1'),
+                hudText2: document.getElementById('hud-text-2'),
+                hudText3: document.getElementById('hud-text-3'),
+                hudText4: document.getElementById('hud-text-4'),
+                hudText5: document.getElementById('hud-text-5'),
+                streamSelect: document.getElementById('stream-style'),
+                recSelect: document.getElementById('rec-style'),
+                rebootBtn: document.getElementById('reboot-btn'),
+                recordBtn: document.getElementById('record-btn'),
+                messageOverlay: document.getElementById('message-overlay'),
+                messageText: document.getElementById('message-text')
+            };
+
+            // Init dropdown
+            ui.styleSelect.value = state.style;
+
+            function showMessage(msg, isError = false) {
+                ui.messageText.textContent = msg;
+                const box = document.getElementById('message-box');
+                const icon = document.getElementById('message-icon');
+                const theme = THEMES[state.style];
+                
+                box.style.borderColor = isError ? '#ef4444' : theme.hex;
+                icon.className = `ph text-xl ${isError ? 'ph-warning-circle text-red-400' : 'ph-info'}`;
+                if(!isError) icon.style.color = theme.hex;
+
+                ui.messageOverlay.classList.remove('translate-x-[150%]');
+                setTimeout(() => ui.messageOverlay.classList.add('translate-x-[150%]'), 3000);
+            }
+
+            function triggerStartup() {
+                state.startupProgress = 1.0;
+                showMessage("System Reboot: Initializing Data Stream...");
+            }
+
+            // ==========================================
+            // Three.js Setup (Main Scene)
+            // ==========================================
+            const container = document.getElementById('canvas-container');
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color('#020305');
+            scene.fog = new THREE.FogExp2(0x020305, 0.025);
+
+            const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(12, 8, 12);
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setClearColor(0x020305, 1);
+            renderer.autoClear = false; // Required to overlay HUD on top of main scene
+            container.appendChild(renderer.domElement);
+
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.enablePan = false;
+            controls.maxPolarAngle = Math.PI / 2 + 0.05;
+
+            // Post-Processing Composer (Cinematic Bloom) - Fixed threshold to prevent blowout
+            const renderScene = new THREE.RenderPass(scene, camera);
+            const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(container.clientWidth, container.clientHeight), 0.8, 0.4, 0.4);
+            const composer = new THREE.EffectComposer(renderer);
+            composer.addPass(renderScene);
+            composer.addPass(bloomPass);
+
+            // Environment
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
+            scene.add(ambientLight);
+
+            // Volumetric Beams
+            const beamGroup = new THREE.Group();
+            beamGroup.position.y = 2;
+            const beamMatOuter = new THREE.MeshBasicMaterial({ color: THEMES[state.style].color, transparent: true, opacity: 0.03, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+            const beamOuter = new THREE.Mesh(new THREE.CylinderGeometry(5.5, 2.5, 15, 32, 1, true), beamMatOuter);
+            const beamMatInner = new THREE.MeshBasicMaterial({ color: THEMES[state.style].color, transparent: true, opacity: 0.06, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+            const beamInner = new THREE.Mesh(new THREE.CylinderGeometry(3.5, 1.5, 15, 32, 1, true), beamMatInner);
+            beamGroup.add(beamOuter, beamInner);
+            
+            // Feature: Ambient Data Dust
+            const dustCount = 300;
+            const dustGeo = new THREE.BufferGeometry();
+            const dustPos = new Float32Array(dustCount * 3);
+            for(let i=0; i<dustCount*3; i+=3) {
+                dustPos[i] = (Math.random() - 0.5) * 6; // x
+                dustPos[i+1] = Math.random() * 15 - 7.5; // y
+                dustPos[i+2] = (Math.random() - 0.5) * 6; // z
+            }
+            dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
+            const dustMat = new THREE.PointsMaterial({ color: THEMES[state.style].color, size: 0.05, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false });
+            const dustSystem = new THREE.Points(dustGeo, dustMat);
+            beamGroup.add(dustSystem);
+            scene.add(beamGroup);
+
+            // Projector Base Physical Object
+            const projectorGroup = new THREE.Group();
+            projectorGroup.position.y = -5.25;
+            scene.add(projectorGroup);
+
+            // Fixed: Lowered emissive intensity to prevent nuclear glow blob on base
+            let lensMat = new THREE.MeshStandardMaterial({ 
+                color: 0x000000, 
+                emissive: THEMES[state.style].color, 
+                emissiveIntensity: 0.8, 
+                roughness: 0.2, 
+                metalness: 0.8 
+            });
+
+            function buildProjector() {
+                // Clear existing
+                while(projectorGroup.children.length > 0){ 
+                    let child = projectorGroup.children[0];
+                    projectorGroup.remove(child); 
+                    if(child.geometry) child.geometry.dispose();
+                }
+
+                let baseGeo, baseMat, lensGeo;
+                
+                if (state.projectorStyle === 'council') {
+                    baseGeo = new THREE.CylinderGeometry(4, 4.5, 0.5, 32);
+                    baseMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.6, metalness: 0.9 });
+                    lensGeo = new THREE.CylinderGeometry(2.5, 2.5, 0.52, 32);
+                    beamGroup.scale.set(1, 1, 1);
+                } else if (state.projectorStyle === 'imperial') {
+                    baseGeo = new THREE.CylinderGeometry(4.5, 4.5, 0.8, 8); // Octagon
+                    baseMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.8, metalness: 0.5 });
+                    lensGeo = new THREE.CylinderGeometry(3, 3, 0.82, 8);
+                    beamGroup.scale.set(1.2, 1, 1.2);
+                } else if (state.projectorStyle === 'puck') {
+                    baseGeo = new THREE.CylinderGeometry(1.5, 1.6, 0.2, 32);
+                    baseMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.4, metalness: 0.9 });
+                    lensGeo = new THREE.CylinderGeometry(1.0, 1.0, 0.22, 32);
+                    beamGroup.scale.set(0.4, 1, 0.4);
+                }
+
+                const base = new THREE.Mesh(baseGeo, baseMat);
+                const lens = new THREE.Mesh(lensGeo, lensMat);
+                projectorGroup.add(base, lens);
+            }
+            buildProjector();
+
+            // Hologram Light
+            const holoLight = new THREE.PointLight(THEMES[state.style].color, 3, 25);
+            holoLight.position.set(0, -4.5, 0);
+            scene.add(holoLight);
+
+            // Scanner Ring
+            const ringMat = new THREE.MeshBasicMaterial({ color: THEMES[state.style].color, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending });
+            const scanRing = new THREE.Mesh(new THREE.TorusGeometry(3.8, 0.03, 16, 64), ringMat);
+            scanRing.rotation.x = Math.PI / 2;
+            scene.add(scanRing);
+
+            let mainModel = new THREE.Group();
+            scene.add(mainModel);
+
+            // Fixed: Realistic Fresnel Hologram Shader
+            // Safely bypasses normal dot products when rendering wireframes to prevent lightning/flash bugs
+            const holoVertexShader = `
+                varying vec3 vNormal;
+                varying vec3 vViewPosition;
+                varying vec3 vWorldPosition;
+                void main() {
+                    vNormal = normalize(normalMatrix * normal);
+                    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                    vViewPosition = -mvPosition.xyz;
+                    vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
+                    gl_Position = projectionMatrix * mvPosition;
+                }
+            `;
+
+            const holoFragmentShader = `
+                uniform vec3 uColor;
+                uniform float uOpacity;
+                uniform float uAttenuation;
+                uniform bool uIsWireframe;
+                uniform bool uFlatShading;
+                varying vec3 vNormal;
+                varying vec3 vViewPosition;
+                varying vec3 vWorldPosition;
+
+                void main() {
+                    float alpha = uOpacity;
+
+                    // Only calculate 3D Fresnel rim lighting on solid faces, NOT 1D lines!
+                    if (!uIsWireframe) {
+                        if (uFlatShading) {
+                            alpha = uOpacity * 0.9;
+                        } else {
+                            vec3 normal = normalize(vNormal);
+                            // Flip normal for internal DoubleSide faces to prevent inverted math
+                            if (!gl_FrontFacing) normal = -normal;
+                            
+                            vec3 viewDir = normalize(vViewPosition);
+                            
+                            // Realistic Fresnel (X-ray edge glow) 
+                            float rim = 1.0 - max(dot(viewDir, normal), 0.0);
+                            rim = smoothstep(0.3, 1.0, rim);
+                            
+                            // Combine rim light with a stable base glow
+                            alpha = (rim * 0.7 + 0.3) * uOpacity;
+                        }
+                    }
+
+                    // Interlaced Hologram Scanlines
+                    if (uFlatShading) {
+                        // Sharp, aggressive scanlines for flat CRT look
+                        if (mod(gl_FragCoord.y, 4.0) < 2.0) {
+                            alpha *= 0.05;
+                        }
+                    } else {
+                        if (mod(gl_FragCoord.y, 4.0) < 2.0) {
+                            alpha *= 0.3;
+                        }
+                    }
+
+                    // Vertical Attenuation Fade
+                    if (uAttenuation > 0.5) {
+                        float fade = smoothstep(6.0, -4.0, vWorldPosition.y);
+                        alpha *= (fade * 0.85 + 0.15); 
+                    }
+
+                    gl_FragColor = vec4(uColor, alpha);
+                }
+            `;
+
+            let modelMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    uColor: { value: new THREE.Color(THEMES[state.style].color) },
+                    uOpacity: { value: 0.6 },
+                    uAttenuation: { value: state.attenuation ? 1.0 : 0.0 },
+                    uIsWireframe: { value: state.wireframe },
+                    uFlatShading: { value: state.flatShading }
+                },
+                vertexShader: holoVertexShader,
+                fragmentShader: holoFragmentShader,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                side: THREE.DoubleSide
+            });
+
+            let lineMaterial = new THREE.LineBasicMaterial({
+                color: THEMES[state.style].color, transparent: true, opacity: 0.15, 
+                blending: THREE.AdditiveBlending, depthWrite: false
+            });
+
+            // ==========================================
+            // Three.js Setup (Tactical HUD Overlay)
+            // ==========================================
+            const hudScene = new THREE.Scene();
+            const hudCamera = new THREE.OrthographicCamera(
+                -container.clientWidth/2, container.clientWidth/2, 
+                container.clientHeight/2, -container.clientHeight/2, 0, 10
+            );
+            
+            const hudCanvas = document.createElement('canvas');
+            hudCanvas.width = container.clientWidth;
+            hudCanvas.height = container.clientHeight;
+            const hudCtx = hudCanvas.getContext('2d');
+            const hudTex = new THREE.CanvasTexture(hudCanvas);
+            
+            const hudMat = new THREE.SpriteMaterial({ map: hudTex, transparent: true, blending: THREE.AdditiveBlending });
+            const hudSprite = new THREE.Sprite(hudMat);
+            hudSprite.scale.set(container.clientWidth, container.clientHeight, 1);
+            hudScene.add(hudSprite);
+
+            function updateHUD(time) {
+                if (!state.overlay) {
+                    hudSprite.visible = false;
+                    return;
+                }
+                hudSprite.visible = true;
+                const w = hudCanvas.width;
+                const h = hudCanvas.height;
+                const theme = THEMES[state.style];
+                
+                hudCtx.clearRect(0, 0, w, h);
+                hudCtx.fillStyle = theme.hex;
+                hudCtx.strokeStyle = theme.hex;
+                
+                // Target Reticle
+                const cx = w/2, cy = h/2;
+                const r = Math.min(w, h) * 0.35;
+                
+                hudCtx.lineWidth = 1;
+                hudCtx.globalAlpha = 0.2;
+                hudCtx.beginPath(); hudCtx.arc(cx, cy, r, 0, Math.PI * 2); hudCtx.stroke();
+                
+                // Crosshairs
+                hudCtx.beginPath();
+                hudCtx.moveTo(cx - r - 20, cy); hudCtx.lineTo(cx - r + 20, cy);
+                hudCtx.moveTo(cx + r - 20, cy); hudCtx.lineTo(cx + r + 20, cy);
+                hudCtx.moveTo(cx, cy - r - 20); hudCtx.lineTo(cx, cy - r + 20);
+                hudCtx.moveTo(cx, cy + r - 20); hudCtx.lineTo(cx, cy + r + 20);
+                hudCtx.stroke();
+                
+                // Text Data
+                hudCtx.globalAlpha = 0.8;
+                hudCtx.font = "bold 14px 'JetBrains Mono', monospace";
+                hudCtx.textAlign = "left";
+                
+                let t1 = ui.hudText1.value.replace(/{HEX}/g, theme.hex.toUpperCase());
+                let t2 = ui.hudText2.value.replace(/{VERTS}/g, state.modelVerts.toLocaleString()).replace(/{FACES}/g, state.modelFaces.toLocaleString());
+                let t3 = ui.hudText3.value.replace(/{ATTEN}/g, state.attenuation ? 'ON' : 'OFF').replace(/{DUST}/g, state.dust ? 'ON' : 'OFF');
+                
+                // Dynamic Glitch Stream formats
+                let t4 = ui.hudText4.value;
+                let glitchText = "";
+                if (state.streamStyle !== 'custom') {
+                    if (state.streamStyle === 'blocks') {
+                        const blocks = "▓▒░█▄▀▌▐";
+                        for(let i=0; i<10; i++) glitchText += blocks.charAt(Math.floor(Math.random() * blocks.length));
+                    } else if (state.streamStyle === 'binary') {
+                        for(let i=0; i<12; i++) glitchText += Math.random() > 0.5 ? "1" : "0";
+                        glitchText = glitchText.match(/.{1,4}/g).join(" ");
+                    } else if (state.streamStyle === 'hex') {
+                        const hexChars = "0123456789ABCDEF";
+                        for(let i=0; i<8; i++) glitchText += hexChars.charAt(Math.floor(Math.random() * hexChars.length));
+                        glitchText = "0x" + glitchText;
+                    } else if (state.streamStyle === 'matrix') {
+                        const matrixChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$*";
+                        for(let i=0; i<10; i++) glitchText += matrixChars.charAt(Math.floor(Math.random() * matrixChars.length));
+                    } else if (state.streamStyle === 'aurebesh') {
+                        const aurebeshChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+                        for(let i=0; i<10; i++) glitchText += aurebeshChars.charAt(Math.floor(Math.random() * aurebeshChars.length));
+                    }
+                    t4 = t4.replace(/{GLITCH}/g, glitchText);
+                } else {
+                    t4 = t4.replace(/{GLITCH}/g, ""); 
+                }
+                
+                let t5 = ui.hudText5.value;
+                if (state.recStyle !== 'custom') {
+                    let recText = "";
+                    if (state.recStyle === 'standard') recText = state.isRecording ? 'ACTIVE' : 'STANDBY';
+                    else if (state.recStyle === 'military') recText = state.isRecording ? 'TX_LIVE' : 'TX_HOLD';
+                    else if (state.recStyle === 'minimal') recText = state.isRecording ? 'REC' : 'IDLE';
+                    else if (state.recStyle === 'numeric') recText = state.isRecording ? '[1]' : '[0]';
+                    t5 = t5.replace(/{REC}/g, recText);
+                } else {
+                    t5 = t5.replace(/{REC}/g, ""); 
+                }
+
+                hudCtx.fillText(t1, 30, 40);
+                hudCtx.fillText(t2, 30, 65);
+                hudCtx.fillText(t3, 30, 90);
+                
+                // Split-rendering logic to allow Aurebesh custom font ONLY on the glitch token
+                if (state.streamStyle === 'aurebesh' && ui.hudText4.value.includes('{GLITCH}')) {
+                    let parts = ui.hudText4.value.split('{GLITCH}');
+                    let cx = 30;
+                    hudCtx.font = "bold 14px 'JetBrains Mono', monospace";
+                    hudCtx.fillText(parts[0], cx, 115);
+                    cx += hudCtx.measureText(parts[0]).width;
+                    
+                    hudCtx.font = "16px 'Aurebesh', sans-serif";
+                    hudCtx.fillText(glitchText, cx, 115);
+                    cx += hudCtx.measureText(glitchText).width;
+                    
+                    if (parts.length > 1) {
+                        hudCtx.font = "bold 14px 'JetBrains Mono', monospace";
+                        hudCtx.fillText(parts[1], cx, 115);
+                    }
+                } else {
+                    hudCtx.font = "bold 14px 'JetBrains Mono', monospace";
+                    hudCtx.fillText(t4, 30, 115);
+                }
+                
+                hudCtx.textAlign = "right";
+                hudCtx.font = "bold 14px 'JetBrains Mono', monospace"; // Reset font for right side
+                hudCtx.fillText(`SYS.CLOCK: ${time.toFixed(2)}s`, w - 30, 40);
+                hudCtx.fillText(t5, w - 30, 65);
+                
+                if (state.isRecording && Math.floor(time * 3) % 2 === 0) {
+                    hudCtx.fillStyle = '#ff0000';
+                    hudCtx.beginPath(); hudCtx.arc(w - 120, 60, 5, 0, Math.PI * 2); hudCtx.fill();
+                }
+                
+                hudTex.needsUpdate = true;
+            }
+
+            // ==========================================
+            // Theme Application
+            // ==========================================
+            function updateTheme() {
+                const theme = THEMES[state.style];
+                
+                modelMaterial.uniforms.uColor.value.setHex(theme.color);
+                modelMaterial.uniforms.uIsWireframe.value = state.wireframe;
+                modelMaterial.uniforms.uFlatShading.value = state.flatShading;
+                modelMaterial.wireframe = state.wireframe;
+                modelMaterial.needsUpdate = true;
+                
+                lineMaterial.color.setHex(theme.color);
+                beamMatOuter.color.setHex(theme.color);
+                beamMatInner.color.setHex(theme.color);
+                dustMat.color.setHex(theme.color);
+                ringMat.color.setHex(theme.color);
+                holoLight.color.setHex(theme.color);
+                lensMat.emissive.setHex(theme.color); // Updated to emissive for StandardMaterial
+
+                // Update UI visuals
+                document.getElementById('header-title').style.color = theme.hex;
+                document.getElementById('header-icon').style.color = theme.hex;
+                
+                const uploadBtn = document.getElementById('upload-btn');
+                uploadBtn.style.borderColor = '#475569';
+                uploadBtn.onmouseover = () => uploadBtn.style.borderColor = theme.hex;
+                uploadBtn.onmouseout = () => uploadBtn.style.borderColor = '#475569';
+
+                document.querySelectorAll('.peer-checked\\:bg-cyan-500, .peer-checked\\:after\\:border-white').forEach(el => {
+                    el.style.backgroundColor = el.previousElementSibling.checked ? theme.hex : '';
+                });
+
+                ui.recordBtn.style.backgroundColor = theme.hex;
+                ui.recordBtn.style.boxShadow = `0 0 15px ${theme.hex}55`;
+                ui.recordBtn.style.color = (state.style === 'gold' || state.style === 'green') ? '#000' : '#fff';
+                
+                [ui.hudText1, ui.hudText2, ui.hudText3, ui.hudText4, ui.hudText5].forEach(el => {
+                    el.onfocus = () => el.style.borderColor = theme.hex;
+                    el.onblur = () => el.style.borderColor = '#475569';
+                });
+
+                // Shader toggles
+                modelMaterial.uniforms.uAttenuation.value = state.attenuation ? 1.0 : 0.0;
+
+                if (mainModel) {
+                    mainModel.traverse((child) => {
+                        if (!child.isMesh && child.geometry) child.visible = state.wireframe; 
+                    });
+                }
+            }
+
+            // ==========================================
+            // Bulletproof Model Handling
+            // ==========================================
+            function centerAndPrepareModel(object) {
+                if (mainModel) {
+                    scene.remove(mainModel);
+                    mainModel.traverse(child => {
+                        if (child.geometry) child.geometry.dispose();
+                        if (child.material) {
+                            if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+                            else child.material.dispose();
+                        }
+                    });
+                }
+                
+                mainModel = object;
+                state.modelVerts = 0;
+                state.modelFaces = 0;
+                
+                const box = new THREE.Box3().setFromObject(mainModel);
+                const size = new THREE.Vector3();
+                box.getSize(size);
+                
+                if (isNaN(size.x) || size.x === Infinity || (size.x === 0 && size.y === 0 && size.z === 0)) {
+                    size.set(1, 1, 1);
+                    box.setFromCenterAndSize(new THREE.Vector3(0,0,0), size);
+                }
+
+                let maxDim = Math.max(size.x, size.y, size.z);
+                if (maxDim === 0) maxDim = 1; 
+                state.boundingBoxSize = maxDim;
+                
+                state.targetScale = 8 / maxDim; // Store for boot animation
+                mainModel.scale.set(state.targetScale, state.targetScale, state.targetScale);
+                
+                const scaledBox = new THREE.Box3().setFromObject(mainModel);
+                const scaledCenter = new THREE.Vector3();
+                scaledBox.getCenter(scaledCenter);
+                
+                mainModel.position.x = -scaledCenter.x;
+                mainModel.position.y = -scaledCenter.y + 1; 
+                mainModel.position.z = -scaledCenter.z;
+                
+                state.baseY = mainModel.position.y;
+                mainModel.userData.baseX = mainModel.position.x;
+                mainModel.userData.baseZ = mainModel.position.z;
+
+                mainModel.traverse((child) => {
+                    if (child.geometry) {
+                        if (!child.geometry.attributes.normal) child.geometry.computeVertexNormals();
+                        
+                        // Gather stats for HUD
+                        if (child.attributes && child.attributes.position) {
+                            state.modelVerts += child.attributes.position.count;
+                        } else if (child.geometry.attributes && child.geometry.attributes.position) {
+                            state.modelVerts += child.geometry.attributes.position.count;
+                        }
+                        
+                        if (child.geometry.index) state.modelFaces += child.geometry.index.count / 3;
+                        else if (child.geometry.attributes && child.geometry.attributes.position) state.modelFaces += child.geometry.attributes.position.count / 3;
+
+                        if (child.isMesh) {
+                            child.material = modelMaterial;
+                        } else {
+                            child.material = lineMaterial;
+                            child.visible = state.wireframe;
+                        }
+                    }
+                });
+
+                scene.add(mainModel);
+                triggerStartup();
+            }
+
+            function loadDefaultShip() {
+                const group = new THREE.Group();
+                const mMat = new THREE.MeshBasicMaterial({color: 0xffffff}); 
+                
+                const hullGeo = new THREE.BoxGeometry(4, 1, 10);
+                const pos = hullGeo.attributes.position;
+                for(let i=0; i<pos.count; i++) {
+                    if(pos.getZ(i) > 0) { pos.setX(i, pos.getX(i) * 0.1); pos.setY(i, pos.getY(i) * 0.2); } 
+                    else { pos.setX(i, pos.getX(i) * 1.5); }
+                }
+                hullGeo.computeVertexNormals();
+                const hull = new THREE.Mesh(hullGeo, mMat); 
+                hull.position.set(0, 0, 0);
+
+                const bridge = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 1.5), mMat); bridge.position.set(0, 1, -3);
+                const tower1 = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1), mMat); tower1.position.set(-0.5, 2, -3);
+                const tower2 = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1), mMat); tower2.position.set(0.5, 2, -3);
+                const engine = new THREE.Mesh(new THREE.BoxGeometry(3, 0.8, 1), mMat); engine.position.set(0, 0, -5);
+                
+                group.add(hull, bridge, tower1, tower2, engine);
+                centerAndPrepareModel(group);
+            }
+            loadDefaultShip();
+
+            // ==========================================
+            // Event Listeners
+            // ==========================================
+            ui.upload.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                ui.filename.textContent = `Loaded: ${file.name}`;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const object = new THREE.OBJLoader().parse(e.target.result);
+                        centerAndPrepareModel(object);
+                    } catch (err) { showMessage("Data corruption detected. File failed.", true); }
+                };
+                reader.readAsText(file);
+            });
+
+            ui.styleSelect.addEventListener('change', (e) => {
+                state.style = e.target.value;
+                if (state.style === 'custom') { ui.customColorContainer.classList.remove('hidden'); ui.customColorContainer.classList.add('flex'); } 
+                else { ui.customColorContainer.classList.add('hidden'); ui.customColorContainer.classList.remove('flex'); }
+                updateTheme();
+            });
+
+            ui.customHexInput.addEventListener('input', (e) => {
+                let val = e.target.value.trim();
+                if(!val.startsWith('#')) val = '#' + val;
+                
+                if(/^#[0-9A-Fa-f]{6}$/i.test(val)) {
+                    // HTML5 color pickers strictly require lowercase values!
+                    ui.customColorPicker.value = val.toLowerCase();
+                    THEMES.custom.hex = val.toUpperCase();
+                    THEMES.custom.color = parseInt(val.substring(1), 16);
+                    if (state.style === 'custom') updateTheme();
+                }
+            });
+
+            ui.customHexInput.addEventListener('blur', (e) => {
+                let val = e.target.value.trim();
+                if(!val.startsWith('#')) val = '#' + val;
+                
+                if(/^#[0-9A-Fa-f]{6}$/i.test(val)) {
+                    e.target.value = val.toUpperCase();
+                } else {
+                    // Revert to valid hex if left incomplete
+                    e.target.value = THEMES.custom.hex.toUpperCase();
+                }
+            });
+
+            ui.customColorPicker.addEventListener('input', (e) => {
+                const val = e.target.value;
+                ui.customHexInput.value = val.toUpperCase();
+                THEMES.custom.hex = val.toUpperCase();
+                THEMES.custom.color = parseInt(val.substring(1), 16);
+                if (state.style === 'custom') updateTheme();
+            });
+
+            ui.projectorSelect.addEventListener('change', (e) => {
+                state.projectorStyle = e.target.value;
+                buildProjector();
+            });
+            
+            ui.streamSelect.addEventListener('change', (e) => {
+                state.streamStyle = e.target.value;
+                ui.hudText4.disabled = state.streamStyle !== 'custom';
+                // Auto-restore the token if it was deleted when returning to an animated style
+                if (state.streamStyle !== 'custom' && !ui.hudText4.value.includes('{GLITCH}')) {
+                    ui.hudText4.value = "STREAM: {GLITCH}";
+                }
+            });
+            
+            ui.recSelect.addEventListener('change', (e) => {
+                state.recStyle = e.target.value;
+                ui.hudText5.disabled = state.recStyle !== 'custom';
+                // Auto-restore the token if it was deleted when returning to an animated style
+                if (state.recStyle !== 'custom' && !ui.hudText5.value.includes('{REC}')) {
+                    ui.hudText5.value = "REC: {REC}";
+                }
+            });
+
+            ui.bloomSlider.addEventListener('input', (e) => {
+                state.bloomStrength = parseFloat(e.target.value);
+                ui.bloomValDisplay.textContent = state.bloomStrength.toFixed(1);
+                bloomPass.strength = state.bloomStrength;
+            });
+
+            ui.rebootBtn.addEventListener('click', triggerStartup);
+
+            // Sync all toggles to state and UI
+            const toggleElements = [
+                { el: ui.wireframe, key: 'wireframe' }, { el: ui.flicker, key: 'flicker' },
+                { el: ui.scanToggle, key: 'scanLaser' }, { el: ui.overlayToggle, key: 'overlay' },
+                { el: ui.dustToggle, key: 'dust' }, { el: ui.attenuationToggle, key: 'attenuation' },
+                { el: ui.bloomToggle, key: 'bloom' }, { el: ui.flatToggle, key: 'flatShading' }
+            ];
+
+            toggleElements.forEach(({el, key}) => {
+                el.addEventListener('change', (e) => {
+                    state[key] = e.target.checked;
+                    updateTheme(); // Apply color changes to the slider & trigger shader updates
+                });
+            });
+
+            window.addEventListener('resize', () => {
+                renderer.setSize(container.clientWidth, container.clientHeight);
+                composer.setSize(container.clientWidth, container.clientHeight);
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                
+                hudCanvas.width = container.clientWidth;
+                hudCanvas.height = container.clientHeight;
+                hudCamera.left = -container.clientWidth/2;
+                hudCamera.right = container.clientWidth/2;
+                hudCamera.top = container.clientHeight/2;
+                hudCamera.bottom = -container.clientHeight/2;
+                hudCamera.updateProjectionMatrix();
+                hudSprite.scale.set(container.clientWidth, container.clientHeight, 1);
+            });
+
+            updateTheme();
+
+            // ==========================================
+            // Render Loop & Animation
+            // ==========================================
+            const clock = new THREE.Clock();
+
+            function animate() {
+                requestAnimationFrame(animate);
+                
+                const time = clock.getElapsedTime();
+                const cycleDuration = 6.0;
+
+                // Feature: Dust Particle Animation
+                if (state.dust) {
+                    dustSystem.visible = true;
+                    const positions = dustSystem.geometry.attributes.position.array;
+                    for(let i=1; i<dustCount*3; i+=3) {
+                        positions[i] += 0.03; // float upwards
+                        if(positions[i] > 7.5) positions[i] = -7.5; // loop bounds relative to beam
+                    }
+                    dustSystem.geometry.attributes.position.needsUpdate = true;
+                } else {
+                    dustSystem.visible = false;
+                }
+
+                if (mainModel) {
+                    // Constant Rotation
+                    const rotationProgress = (time % cycleDuration) / cycleDuration;
+                    mainModel.rotation.y = rotationProgress * Math.PI * 2;
+                    
+                    // Feature: Startup Boot Sequence Animation
+                    if (state.startupProgress > 0) {
+                        state.startupProgress -= 0.012; // Controls duration of boot
+                        if (state.startupProgress < 0) state.startupProgress = 0;
+                        
+                        let p = 1.0 - state.startupProgress; // 0 to 1
+                        let easeOut = 1 - Math.pow(1 - p, 3); // elastic curve
+                        
+                        mainModel.scale.set(state.targetScale * easeOut, state.targetScale * p, state.targetScale * easeOut);
+                        
+                        // Initial Boot Flickering
+                        if (Math.random() > p) {
+                            modelMaterial.uniforms.uOpacity.value = Math.random() * 0.2;
+                            mainModel.position.x = mainModel.userData.baseX + (Math.random() - 0.5) * 0.5;
+                            beamMatInner.opacity = Math.random() * 0.05;
+                        } else {
+                            mainModel.position.x = mainModel.userData.baseX;
+                        }
+                    } else {
+                        // Standard stabilized hologram
+                        mainModel.scale.set(state.targetScale, state.targetScale, state.targetScale);
+                        
+                        // Adjusted base opacity: wireframes stack faster, so use lower baseline
+                        const targetOpacity = state.wireframe ? 0.25 : 0.6;
+                        
+                        if (state.flicker) {
+                            const noise = Math.random();
+                            // Glitch should simulate SIGNAL LOSS (dimming), not strobe lightning (brightening)
+                            if (noise > 0.95) {
+                                mainModel.position.x = mainModel.userData.baseX + (Math.random() - 0.5) * 0.15;
+                                modelMaterial.uniforms.uOpacity.value = targetOpacity * 0.1; // Heavy dimming
+                                holoLight.intensity = 0.5;
+                                beamMatInner.opacity = 0.01;
+                            } else if (noise > 0.90) {
+                                mainModel.position.x = mainModel.userData.baseX + (Math.random() - 0.5) * 0.05;
+                                modelMaterial.uniforms.uOpacity.value = targetOpacity * 0.6; // Slight dimming
+                            } else {
+                                mainModel.position.x = mainModel.userData.baseX;
+                                modelMaterial.uniforms.uOpacity.value = targetOpacity;
+                                holoLight.intensity = 3 + Math.sin(time * 15) * 0.3;
+                                beamMatInner.opacity = 0.06 + Math.sin(time * 5) * 0.01;
+                            }
+                        } else {
+                            mainModel.position.x = mainModel.userData.baseX;
+                            modelMaterial.uniforms.uOpacity.value = targetOpacity;
+                            holoLight.intensity = 3;
+                            beamMatInner.opacity = 0.06;
+                        }
+                    }
+                }
+
+                // Scanner Ring
+                if (state.scanLaser && mainModel) {
+                    scanRing.visible = true;
+                    const bounds = (state.boundingBoxSize || 10) * 0.45;
+                    const sweepProgress = (time % (cycleDuration/2)) / (cycleDuration/2);
+                    scanRing.position.y = 1 + Math.sin(sweepProgress * Math.PI * 2) * bounds;
+                    const ringScale = 1 - (scanRing.position.y / 15) * 0.3;
+                    scanRing.scale.set(ringScale, ringScale, ringScale);
+                } else {
+                    scanRing.visible = false;
+                }
+
+                // Render Pass (Main Scene -> Clear Depth -> HUD Scene)
+                updateHUD(time);
+                renderer.clear();
+                if (state.bloom) {
+                    composer.render();
+                } else {
+                    renderer.render(scene, camera);
+                }
+                renderer.clearDepth();
+                renderer.render(hudScene, hudCamera);
+            }
+            animate();
+
+            // ==========================================
+            // GIF Recording Logic
+            // ==========================================
+            async function getGifWorkerUrl() {
+                try {
+                    const response = await fetch('https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js');
+                    const text = await response.text();
+                    return URL.createObjectURL(new Blob([text], { type: 'application/javascript' }));
+                } catch (e) {
+                    return 'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js';
+                }
+            }
+
+            ui.recordBtn.addEventListener('click', async () => {
+                if (state.isRecording) return;
+                state.isRecording = true;
+
+                ui.recordBtn.innerHTML = `<div class="loader-ring w-5 h-5 border-2" style="border-color: rgba(255,255,255,0.2); border-left-color: white;"></div><span>Recording Loop...</span>`;
+                ui.recordBtn.style.opacity = '0.7';
+                
+                const workerScriptURL = await getGifWorkerUrl();
+                const fps = 15;
+                const durationSeconds = 6;
+                const totalFrames = fps * durationSeconds;
+                const delayMs = 1000 / fps;
+                
+                const maxDim = 500; 
+                let scaleW = container.clientWidth;
+                let scaleH = container.clientHeight;
+                if(scaleW > maxDim || scaleH > maxDim) {
+                    const r = Math.min(maxDim/scaleW, maxDim/scaleH);
+                    scaleW = Math.floor(scaleW * r);
+                    scaleH = Math.floor(scaleH * r);
+                }
+                
+                // Force stabilized state for perfect looping
+                state.startupProgress = 0; 
+                clock.start(); 
+
+                const gif = new GIF({
+                    workers: 2, quality: 10, width: scaleW, height: scaleH,
+                    workerScript: workerScriptURL, background: '#020305', transparent: null
+                });
+
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = scaleW; tempCanvas.height = scaleH;
+                const tempCtx = tempCanvas.getContext('2d');
+
+                let currentFrame = 0;
+                showMessage(`Recording ${durationSeconds}s holographic loop...`);
+
+                const captureInterval = setInterval(() => {
+                    // Force render manually to ensure buffer is strictly synced to capture timing
+                    updateHUD(clock.getElapsedTime());
+                    renderer.clear();
+                    if (state.bloom) {
+                        composer.render();
+                    } else {
+                        renderer.render(scene, camera);
+                    }
+                    renderer.clearDepth();
+                    renderer.render(hudScene, hudCamera);
+                    
+                    tempCtx.fillStyle = '#020305';
+                    tempCtx.fillRect(0, 0, scaleW, scaleH);
+                    tempCtx.drawImage(renderer.domElement, 0, 0, scaleW, scaleH);
+                    
+                    gif.addFrame(tempCtx, {copy: true, delay: delayMs});
+                    
+                    currentFrame++;
+                    const progress = Math.round((currentFrame / totalFrames) * 100);
+                    ui.recordBtn.innerHTML = `<div class="loader-ring w-5 h-5 border-2" style="border-color: rgba(255,255,255,0.2); border-left-color: white;"></div><span>Capturing ${progress}%</span>`;
+
+                    if (currentFrame >= totalFrames) {
+                        clearInterval(captureInterval);
+                        
+                        ui.recordBtn.innerHTML = `<i class="ph ph-video-camera text-xl"></i><span>Record 6s Loop</span>`;
+                        ui.recordBtn.style.opacity = '1';
+                        
+                        document.getElementById('loading-overlay').classList.replace('hidden', 'flex');
+                        document.getElementById('loading-bar').style.width = '0%';
+
+                        gif.on('progress', p => {
+                            document.getElementById('loading-bar').style.width = Math.round(p * 100) + '%';
+                            document.getElementById('loading-text').textContent = `Compiling transmission: ${Math.round(p * 100)}%`;
+                        });
+
+                        gif.on('finished', blob => {
+                            document.getElementById('loading-overlay').classList.replace('flex', 'hidden');
+                            const url = URL.createObjectURL(blob);
+                            
+                            const modal = document.getElementById('gif-modal');
+                            document.getElementById('gif-loading-placeholder').classList.add('hidden');
+                            
+                            const preview = document.getElementById('gif-preview');
+                            preview.src = url; preview.classList.remove('hidden');
+                            
+                            const dLink = document.getElementById('download-gif-link');
+                            dLink.href = url; dLink.classList.replace('hidden', 'flex');
+                            
+                            modal.classList.replace('hidden', 'flex');
+                            state.isRecording = false;
+                        });
+
+                        gif.render();
+                    }
+                }, delayMs);
+            });
+
+            // Modal Handlers
+            function closeModal() {
+                document.getElementById('gif-modal').classList.replace('flex', 'hidden');
+                document.getElementById('gif-preview').src = '';
+                document.getElementById('gif-preview').classList.add('hidden');
+                document.getElementById('gif-loading-placeholder').classList.remove('hidden');
+                const dLink = document.getElementById('download-gif-link');
+                dLink.classList.replace('flex', 'hidden');
+                if(dLink.href && dLink.href !== '#') { URL.revokeObjectURL(dLink.href); dLink.href = '#'; }
+            }
+            document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+            document.getElementById('discard-gif-btn').addEventListener('click', closeModal);
+
+        })();
+    </script>
+</body>
+</html>
